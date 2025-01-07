@@ -4,7 +4,7 @@ Uses the command pattern to execute functions dynamically
 */
 
 pub trait Instruction {
-    fn exe(value: u16);
+    fn exe(&self, value: u16);
 }
 
 struct Add;
@@ -23,7 +23,7 @@ struct Str;
 struct Trap;
 
 impl Instruction for Add {
-    fn exe(value: u16) {
+    fn exe(&self, value: u16) {
 
     }
 }
