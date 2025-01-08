@@ -3,11 +3,13 @@ use super::instructions::{
     Ldi, Lea, Not, Rti, St, Sti, Trap,
 };
 use super::registers::Registers;
+use super::memory::Memory;
 use std::collections::HashMap;
 
 pub struct VM {
     instructions: HashMap<u8, Box<dyn Instruction>>,
     registers: Registers,
+    memory: Memory,
 }
 
 impl VM {
@@ -30,7 +32,8 @@ impl VM {
 
         VM {
             instructions: ins,
-            registers: Registers::new()
+            registers: Registers::new(),
+            memory: Memory::new(),
         }
     }
 }
