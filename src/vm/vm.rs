@@ -2,10 +2,12 @@ use super::instructions::{
     Instruction, Add, And, Br, JmpRet, Jsr, Ld,
     Ldi, Lea, Not, Rti, St, Sti, Trap,
 };
+use super::registers::Registers;
 use std::collections::HashMap;
 
 pub struct VM {
-    instructions: HashMap<u8, Box<dyn Instruction>>
+    instructions: HashMap<u8, Box<dyn Instruction>>,
+    registers: Registers,
 }
 
 impl VM {
@@ -28,6 +30,7 @@ impl VM {
 
         VM {
             instructions: ins,
+            registers: Registers::new()
         }
     }
 }
