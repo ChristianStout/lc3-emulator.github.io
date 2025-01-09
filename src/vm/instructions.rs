@@ -6,9 +6,14 @@ Uses the command pattern to execute functions dynamically
 */
 
 pub trait Instruction {
+    /*
+    value is the raw instruction interpretted from the asm,
+    excluding opcode.
+    */
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory);
 }
 
+#[allow(dead_code, unused_variables)]
 pub struct Add;
 pub struct And;
 pub struct Br;
@@ -27,7 +32,25 @@ pub struct Trap;
 
 impl Instruction for Add {
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
+        /*
+        ADD - | 0001 000 000 000 000 |
+              | ---- --- --- --- --- |
+              | op   dr  sr1 --- sr2 |
+        */
+        let mut i = value;
 
+        let dr = i << 9;
+        i -= dr >> 9;
+
+        let sr1 = i << 6;
+        i -= dr >> 6;
+
+        let sr2 = i;
+
+        let v1 = reg.get(sr1 as usize);
+        let v2 = reg.get(sr2 as usize);
+
+        reg.set(dr as usize, v1 + v2);
     }
 }
 
