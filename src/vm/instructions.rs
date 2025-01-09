@@ -16,6 +16,7 @@ pub struct JmpRet;
 pub struct Jsr;
 pub struct Ld;
 pub struct Ldi;
+pub struct Ldr;
 pub struct Lea;
 pub struct Not;
 pub struct Rti;
@@ -61,6 +62,12 @@ impl Instruction for Ld {
 }
 
 impl Instruction for Ldi {
+    fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
+
+    }
+}
+
+impl Instruction for Ldr {
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
 
     }
