@@ -1,3 +1,5 @@
+use core::num;
+
 use super::registers::Registers;
 use super::memory::Memory;
 
@@ -111,7 +113,7 @@ impl Instruction for JmpRet {
 
 impl Instruction for Jsr {
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
-
+        
     }
 }
 
@@ -173,4 +175,17 @@ impl Instruction for Trap {
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
 
     }
+}
+
+fn get_offset(mut value: u16, num_bits: i32) -> u16 {
+    let mut pos = 1;
+    let mut buf: u16 = 0;
+
+    for _ in 0..num_bits {
+        buf += (value % 2) * pos;
+        pos *= 2;
+        value = value >> 1;
+    }
+
+    return buf;
 }
