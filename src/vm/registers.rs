@@ -1,7 +1,7 @@
 
 pub struct Registers {
-    r: [u16; 8],
-    pc: u16,
+    pub r: [u16; 8],
+    pub pc: u16,
 }
 
 impl Registers {

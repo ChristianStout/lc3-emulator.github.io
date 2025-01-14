@@ -113,7 +113,34 @@ impl Instruction for JmpRet {
 
 impl Instruction for Jsr {
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
-        
+        /*
+        JSR - | 0100 1 00000000000   |
+              | ---- - -----------   |
+              | op   c pcoffset11    |
+              +----------------------+
+        JSRR- | 0100 0 00 000 000000 |
+              | ---- - -- --- ------ |
+              | op   c -- br  ------ |
+        */
+        let code = value << 11;
+        let inc_pc = reg.pc;
+
+
+        match code {
+            0 => {
+                let offset_reg = value << 6;
+                let offset = reg.r[offset_reg as usize];
+                reg.pc += offset;
+            },
+            1 => {
+                let offset = get_offset(value, 11);
+                reg.pc = offset;
+            },
+            _ => unreachable!(),
+        }
+
+        // link back to the instruction after Jsr by putting PC in R7
+        reg.r[7] = inc_pc;
     }
 }
 

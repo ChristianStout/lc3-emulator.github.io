@@ -45,6 +45,8 @@ impl VM {
     }
 
     pub fn run_single_command(&mut self, cmd: u16) {
+        self.registers.pc += 1;
+
         let opcode: u16 = cmd >> OPCODE_DELTA;
         let value: u16 = cmd - (opcode << OPCODE_DELTA);
         self.instructions[&(opcode as u8)]
