@@ -74,6 +74,5 @@ mod tests {
     #[test]
     fn test_ins_map_invalid() {
         assert_eq!(OpcodeIns::from(16), OpcodeIns::INVALID);
-
     }
 }
