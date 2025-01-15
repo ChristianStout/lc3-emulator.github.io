@@ -33,7 +33,7 @@ pub struct Str;
 pub struct Trap;
 
 impl Instruction for Add {
-    fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
+    fn exe(&self, value: u16, reg: &mut Registers, _mem: &mut Memory) {
         /*
         ADD - | 0001 000 000 000 000 |
               | ---- --- --- --- --- |
@@ -52,12 +52,16 @@ impl Instruction for Add {
         let v1 = reg.get(sr1 as usize);
         let v2 = reg.get(sr2 as usize);
 
-        reg.set(dr as usize, v1 + v2);
+        let new_value = v1 + v2;
+
+        reg.set(dr as usize, new_value);
+
+        set_nzp(reg, new_value);
     }
 }
 
 impl Instruction for And {
-    fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
+    fn exe(&self, value: u16, reg: &mut Registers, _mem: &mut Memory) {
         /*
         AND - | 0101 000 000 000 000 |
               | ---- --- --- --- --- |
@@ -76,32 +80,50 @@ impl Instruction for And {
         i -= dr >> 6;
 
         let code = i << 5;
+
+        let new_value: u16;
+
         match code {
             0 => {
                 let sr2 = i;
 
                 let v1 = reg.get(sr1 as usize);
                 let v2 = reg.get(sr2 as usize);
+                new_value = v1 & v2;
 
-                reg.set(dr as usize, v1 & v2);
+                reg.set(dr as usize, new_value);
             },
             1 => {
                 i -= code >> 5;
                 let reg_val = reg.get(sr1 as usize);
                 let imm_val = i;
+                new_value = reg_val & imm_val;
                 
-                reg.set(dr as usize, reg_val & imm_val);
+                reg.set(dr as usize, new_value);
             },
             _ => {
                 unreachable!();
             },
         }
+
+        set_nzp(reg, new_value)
     }
 }
 
 impl Instruction for Br {
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
+        /*
+        BR  - | 0000 000 000000000 |
+              | ---- --- --------- |
+              | op   nzp pcoffset9 |
+        */
+        let n = get_bit_index(value, 4);
+        let z = get_bit_index(value, 5);
+        let p = get_bit_index(value, 6);
 
+        if (n == 1 && reg.n) || (z == 1 && reg.z) || (p == 1 && reg.p) {
+            reg.pc += get_offset(value, 9);
+        }
     }
 }
 
@@ -122,7 +144,7 @@ impl Instruction for Jsr {
               | ---- - -- --- ------ |
               | op   c -- br  ------ |
         */
-        let code = value << 11;
+        let code = get_bit_index(value, 12);
         let inc_pc = reg.pc;
 
 
@@ -215,4 +237,26 @@ fn get_offset(mut value: u16, num_bits: i32) -> u16 {
     }
 
     return buf;
+}
+
+fn get_bit_index(value: u16, index: i32) -> u16 {
+    return value >> index & 1;
+}
+
+fn set_nzp(reg: &mut Registers, value: u16) {
+    reg.n = false;
+    reg.z = false;
+    reg.p = false;
+
+    let signed = value as i16;
+
+    if signed < 0 {
+        reg.n = true;
+    }
+    if signed == 0 {
+        reg.z = true;
+    }
+    if signed > 0 {
+        reg.p = true;
+    }
 }
