@@ -5,6 +5,7 @@ pub struct Registers {
     pub n: bool,
     pub z: bool,
     pub p: bool,
+    pub halt: bool,
 }
 
 impl Registers {
@@ -15,13 +16,14 @@ impl Registers {
             n: false,
             z: false,
             p: false,
+            halt: false,
         }
     }
 
     pub fn get(&self, reg_value: usize) -> u16 {
         // TODO: Add error handling that will (gracefully) shutdown
         //      entire VM if this get hit.
-        if (reg_value >= 8) {
+        if reg_value >= 8 {
             println!("Well, no. Don't give me {} as a register value. There are only 8 registers...", reg_value);
             return 1;
         }
