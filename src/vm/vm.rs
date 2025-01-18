@@ -44,7 +44,8 @@ impl VM {
         }
     }
 
-    pub fn run_single_command(&mut self, cmd: u16) {
+    pub fn run_single_command(&mut self) {
+        let cmd = self.memory.get(self.registers.pc);
         self.registers.pc += 1;
 
         let opcode: u16 = cmd >> OPCODE_DELTA;
