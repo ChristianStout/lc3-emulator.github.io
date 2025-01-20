@@ -45,6 +45,9 @@ impl VM {
     }
 
     pub fn run_single_command(&mut self) {
+        if self.registers.halt == true {
+            return;
+        }
         let cmd = self.memory.get(self.registers.pc);
         self.registers.pc += 1;
 
