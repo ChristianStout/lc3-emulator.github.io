@@ -168,7 +168,16 @@ impl Instruction for Jsr {
 
 impl Instruction for Ld {
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
+        /*
+        LD  - | 0010 000 000000000 |
+              | ---- --- --------- |
+              | op   dr  pcoffset9 |
+        */
+        let dr = value << 9;
+        let offset = get_offset(value, 9);
 
+        let new_value = mem.get(offset);
+        reg.set(dr as usize, new_value);
     }
 }
 
