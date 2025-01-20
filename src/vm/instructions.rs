@@ -183,7 +183,17 @@ impl Instruction for Ld {
 
 impl Instruction for Ldi {
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
+        /*
+        LDI - | 1010 000 000000000 |
+              | ---- --- --------- |
+              | op   dr  pcoffset9 |
+        */
+        let dr = value << 9;
+        let ptr = get_offset(value, 9);
 
+        let address = mem.get(ptr);
+        let new_value = mem.get(address);
+        reg.set(dr as usize, new_value);
     }
 }
 
