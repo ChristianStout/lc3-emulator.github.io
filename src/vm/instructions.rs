@@ -211,7 +211,8 @@ impl Instruction for Lea {
               | op   dr  label     |
         */
         // This is notably just ldi under the hood. It's the responsibility
-        // of the assembler 
+        // of the assembler to know the location of the label in it's variable
+        // table, and find it relative to the current PC.
         let dr = value << 9;
         let ptr = get_offset(value, 9);
 
