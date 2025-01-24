@@ -66,5 +66,8 @@ mod test {
 
         reg.r[7] = 1000;
         assert!(reg.get(7) == 1000);
+
+        reg.r[3] = 712;
+        assert!(reg.get(3) == 712);
     }
 }
