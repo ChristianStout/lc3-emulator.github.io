@@ -233,10 +233,10 @@ impl Instruction for Not {
         // of the assembler to know the location of the label in it's variable
         // table, and find it relative to the current PC.
         let mut i = value;
-        let dr = i << 9;
-        i -= dr >> 9;
-        let sr = i << 6;
-        i -= dr >> 6;
+        let dr = i >> 9;
+        i -= dr << 9;
+        let sr = i >> 6;
+        i -= dr << 6;
 
         let old_val = reg.get(sr as usize);
         
@@ -306,5 +306,30 @@ fn set_nzp(reg: &mut Registers, value: u16) {
     }
     if signed > 0 {
         reg.p = true;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[test]
+    fn test_not() {
+        let mut mem = super::Memory::new();
+        let mut reg = super::Registers::new();
+        let not = super::Not {};
+
+        reg.set(1, 0b0000_1111_0101_1010);
+
+        let ins: u16 = 0b0000_000_001_111111;
+        not.exe(ins, &mut reg, &mut mem);
+
+        assert!(reg.get(0) != reg.get(1));
+        assert!(reg.get(0) == !reg.get(1));
+
+        reg.set(1, 0b1101_1011_1111_1110);
+        not.exe(ins, &mut reg, &mut mem);
+
+        assert!(reg.get(0) != reg.get(1));
+        assert!(reg.get(0) == !reg.get(1));
     }
 }
