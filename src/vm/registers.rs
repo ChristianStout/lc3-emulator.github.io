@@ -42,3 +42,19 @@ impl Registers {
         self.r[reg_value] = new_value;
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[test]
+    fn test_set() {
+        let mut reg = Registers::new();
+
+        assert!(reg.r[0] == 0);
+
+        reg.set(0, 256);
+
+        assert!(reg.r[0] != 0);
+        assert!(reg.r[0] == 256);
+    }
+}
