@@ -57,4 +57,14 @@ mod test {
         assert!(reg.r[0] != 0);
         assert!(reg.r[0] == 256);
     }
+
+    #[test]
+    fn test_get() {
+        let mut reg = Registers::new();
+
+        assert!(reg.get(0) == 0);
+
+        reg.r[7] = 1000;
+        assert!(reg.get(7) == 1000);
+    }
 }
