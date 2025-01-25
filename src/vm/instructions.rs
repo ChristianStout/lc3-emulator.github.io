@@ -45,7 +45,6 @@ impl Instruction for Add {
         i -= dr << 9;
 
         let sr1 = i >> 6;
-        let x = sr1 << 6;
         i -= sr1 << 6;
 
         let sr2 = i;
@@ -322,10 +321,14 @@ mod test {
         reg.set(1, 8);
 
         let ins: u16 = 0b0000_010_001_0_00_000;
-
         add.exe(ins, &mut reg, &mut mem);
 
         assert!(reg.get(2) == 10);
+
+        let ins: u16 = 0b0000_010_001_1_00011;
+        add.exe(ins, &mut reg, &mut mem);
+
+        assert!(reg.get(2) == 11);
     }
 
     #[test]
