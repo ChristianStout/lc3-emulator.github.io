@@ -227,13 +227,10 @@ impl Instruction for Lea {
 impl Instruction for Not {
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
         /*
-        LDI - | 1001 000 000 000000 |
+        NOT - | 1001 000 000 111111 |
               | ---- --- --- ------ |
               | op   dr  sr         |
         */
-        // This is notably just ldi under the hood. It's the responsibility
-        // of the assembler to know the location of the label in it's variable
-        // table, and find it relative to the current PC.
         let mut i = value;
         let dr = i >> 9;
         i -= dr << 9;
