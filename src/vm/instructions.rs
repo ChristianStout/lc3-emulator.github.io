@@ -41,11 +41,11 @@ impl Instruction for Add {
         */
         let mut i = value;
 
-        let dr = i << 9;
-        i -= dr >> 9;
+        let dr = i >> 9;
+        i -= dr << 9;
 
-        let sr1 = i << 6;
-        i -= sr1 >> 6;
+        let sr1 = i >> 6;
+        i -= sr1 << 6;
 
         let sr2 = i;
 
@@ -312,6 +312,23 @@ fn set_nzp(reg: &mut Registers, value: u16) {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_add() {
+        let mut mem = super::Memory::new();
+        let mut reg = super::Registers::new();
+        let add = super::Add {};
+
+        reg.set(0, 2);
+        reg.set(1, 8);
+
+        let ins: u16 = 0b0000_010_001_0_00_000;
+
+        add.exe(ins, &mut reg, &mut mem);
+
+        assert!(reg.get(2) == 10);
+    }
+
     #[test]
     fn test_not() {
         let mut mem = super::Memory::new();
