@@ -1,4 +1,5 @@
 use core::num;
+use std::f32::consts::PI;
 
 use super::registers::Registers;
 use super::memory::Memory;
@@ -47,12 +48,28 @@ impl Instruction for Add {
         let sr1 = i >> 6;
         i -= sr1 << 6;
 
-        let sr2 = i;
+        let new_value: u16;
+        let code = get_bit_index(value, 5);
 
-        let v1 = reg.get(sr1 as usize);
-        let v2 = reg.get(sr2 as usize);
+        match code {
+            0 => {
+                let sr2 = i;
 
-        let new_value = v1 + v2;
+                let v1 = reg.get(sr1 as usize);
+                let v2 = reg.get(sr2 as usize);
+        
+                new_value = v1 + v2;
+            },
+            1 => {
+                i -= code >> 5;
+                let reg_val = reg.get(sr1 as usize);
+                let imm_val = i;
+                new_value = reg_val + imm_val;
+                
+                reg.set(dr as usize, new_value);
+            }
+            _ => unreachable!()
+        }
 
         reg.set(dr as usize, new_value);
 
@@ -345,7 +362,7 @@ mod test {
 
         assert!(reg.get(2) == 1);
 
-        let mut ins: u16 = 0b0000_010_001_1_11001;
+        ins = 0b0000_010_001_1_11001;
         and.exe(ins, &mut reg, &mut mem);
 
         assert!(reg.get(2) == 9);
