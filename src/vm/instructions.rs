@@ -45,6 +45,7 @@ impl Instruction for Add {
         i -= dr << 9;
 
         let sr1 = i >> 6;
+        let x = sr1 << 6;
         i -= sr1 << 6;
 
         let sr2 = i;
@@ -73,13 +74,14 @@ impl Instruction for And {
         */
         let mut i = value;
 
-        let dr = i << 9;
-        i -= dr >> 9;
+        let dr = i >> 9;
+        i -= dr << 9;
 
-        let sr1 = i << 6;
-        i -= dr >> 6;
+        let sr1 = i >> 6;
+        let x = sr1 << 6;
+        i -= x;
 
-        let code = i << 5;
+        let code = get_bit_index(value, 5);
 
         let new_value: u16;
 
@@ -327,6 +329,26 @@ mod test {
         add.exe(ins, &mut reg, &mut mem);
 
         assert!(reg.get(2) == 10);
+    }
+
+    #[test]
+    fn test_and() {
+        let mut mem = super::Memory::new();
+        let mut reg = super::Registers::new();
+        let and = super::And {};
+
+        reg.set(0, 3);
+        reg.set(1, 9);
+
+        let mut ins: u16 = 0b0000_010_001_0_00_000;
+        and.exe(ins, &mut reg, &mut mem);
+
+        assert!(reg.get(2) == 1);
+
+        let mut ins: u16 = 0b0000_010_001_1_11001;
+        and.exe(ins, &mut reg, &mut mem);
+
+        assert!(reg.get(2) == 9);
     }
 
     #[test]
