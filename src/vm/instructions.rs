@@ -10,8 +10,9 @@ Uses the command pattern to execute functions dynamically
 
 pub trait Instruction {
     /*
-    value is the raw instruction interpretted from the asm,
+    value is the raw instruction interpreted from the asm,
     *excluding* the opcode.
+     ^^^^^^^^^
     */
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory);
 }
