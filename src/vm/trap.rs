@@ -19,6 +19,6 @@ impl Trap {
     }
 
     pub fn halt(&self, reg:&mut Registers) {
-        
+        reg.halt = true;
     }
 }
