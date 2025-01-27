@@ -1,8 +1,6 @@
-use core::num;
-use std::f32::consts::PI;
-
 use super::registers::Registers;
 use super::memory::Memory;
+use super::trap::Trap;
 
 /*
 Uses the command pattern to execute functions dynamically
@@ -32,7 +30,6 @@ pub struct Rti;
 pub struct St;
 pub struct Sti;
 pub struct Str;
-pub struct Trap;
 
 impl Instruction for Add {
     fn exe(&self, value: u16, reg: &mut Registers, _mem: &mut Memory) {

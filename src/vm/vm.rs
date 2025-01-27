@@ -1,7 +1,8 @@
 use super::instructions::{
     Instruction, Add, And, Br, JmpRet, Jsr, Ld,
-    Ldi, Lea, Not, Rti, St, Sti, Trap, Ldr
+    Ldi, Lea, Not, Rti, St, Sti, Ldr
 };
+use super::trap::Trap;
 use super::registers::Registers;
 use super::memory::Memory;
 use std::collections::HashMap;
