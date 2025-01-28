@@ -282,8 +282,22 @@ impl Instruction for Str {
 }
 
 impl Instruction for Trap {
-    fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
+    fn exe(&self, value: u16, reg: &mut Registers, _mem: &mut Memory) {
+        /*
+        TRAP - | 1111 0000 00000000 |
+               | ---- ---- -------- |
+               | op        trapvec8 |
+        */
+        let code = get_offset(value, 8);
 
+        match code {
+            20 => self.get_c(reg),
+            21 => self.out(reg),
+            22 => self.put_s(reg),
+            23 => self.r#in(reg),
+            25 => self.halt(reg),
+            _ => unreachable!(),
+        }
     }
 }
 
@@ -344,6 +358,7 @@ mod test {
         add.exe(ins, &mut reg, &mut mem);
 
         assert!(reg.get(2) == 11);
+        // TODO: Account for NZP bits
     }
 
     #[test]
@@ -364,6 +379,8 @@ mod test {
         and.exe(ins, &mut reg, &mut mem);
 
         assert!(reg.get(2) == 9);
+
+        // TODO: Account for NZP bits
     }
 
     #[test]
@@ -385,5 +402,7 @@ mod test {
 
         assert!(reg.get(0) != reg.get(1));
         assert!(reg.get(0) == !reg.get(1));
+
+        // TODO: Account for NZP bits
     }
 }
