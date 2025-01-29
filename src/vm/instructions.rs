@@ -359,6 +359,17 @@ mod test {
 
         assert!(reg.get(2) == 11);
         // TODO: Account for NZP bits
+
+        assert!(reg.n == false);
+        assert!(reg.z == false);
+        assert!(reg.p == true);
+
+        let ins: u16 = 0b0000_010_001_1_10110;
+        add.exe(ins, &mut reg, &mut mem);
+
+        assert!(reg.n == false);
+        assert!(reg.z == true);
+        assert!(reg.p == false);
     }
 
     #[test]
