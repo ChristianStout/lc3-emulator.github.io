@@ -13,6 +13,7 @@ pub enum Token {
 
 pub struct Lexer {
     br_regex: Regex,
+    // instuction_regex: Regex,
 }
 
 impl Lexer {
@@ -21,6 +22,7 @@ impl Lexer {
         
         Lexer {
             br_regex: br_regex,
+            // instuction_regex:
         }
     }
 }

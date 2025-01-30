@@ -13,10 +13,17 @@ impl Memory {
     }
 
     pub fn get(&self, loc: u16) -> u16 {
-        return self.inner[loc as usize];
+        if loc < 8 {
+            return self.inner[loc as usize];
+        }
+        panic!("Only 8 registers exist (0-7). Therefore, register {} does not exist.", loc);
     }
 
     pub fn set(&mut self, loc: u16, val: u16) {
-        self.inner[loc as usize] = val;
+        if loc < 8 {
+            self.inner[loc as usize] = val;
+            return;
+        }
+        panic!("Only 8 registers exist (0-7). Therefore, register {} does not exist.", loc);
     }
 }
