@@ -67,7 +67,6 @@ impl Instruction for Add {
             1 => {
                 let reg_val = reg.get(sr1 as usize);
                 let imm_val = get_offset(value, 5);
-                print!("imm-val: {}", imm_val as i16);
                 new_value = (reg_val as i16 + imm_val as i16) as u16;
             }
             _ => unreachable!()
@@ -329,7 +328,6 @@ fn get_offset(mut value: u16, num_bits: i32) -> u16 {
         for _ in 0..remaning_bits {
             buf += pos as u16;
             pos *= 2;
-            println!("flags: {:#018b}", buf);
         }
     }
 
