@@ -1,3 +1,5 @@
+use core::num;
+
 use super::registers::Registers;
 use super::memory::Memory;
 use super::trap::Trap;
@@ -37,6 +39,10 @@ impl Instruction for Add {
         ADD - | 0001 000 000 000 000 |
               | ---- --- --- --- --- |
               | op   dr  sr1 --- sr2 |
+              +----------------------+
+        ADD - | 0001 000 000 1 00000 |
+              | ---- --- --- - ----- |
+              | op   dr  sr1 - imm   |
         */
         let mut i = value;
 
@@ -59,12 +65,10 @@ impl Instruction for Add {
                 new_value = v1 + v2;
             },
             1 => {
-                i -= code >> 5;
                 let reg_val = reg.get(sr1 as usize);
-                let imm_val = i;
-                new_value = reg_val + imm_val;
-                
-                reg.set(dr as usize, new_value);
+                let imm_val = get_offset(value, 5);
+                print!("imm-val: {}", imm_val as i16);
+                new_value = (reg_val as i16 + imm_val as i16) as u16;
             }
             _ => unreachable!()
         }
@@ -127,7 +131,7 @@ impl Instruction for And {
 }
 
 impl Instruction for Br {
-    fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
+    fn exe(&self, value: u16, reg: &mut Registers, _mem: &mut Memory) {
         /*
         BR  - | 0000 000 000000000 |
               | ---- --- --------- |
@@ -150,7 +154,7 @@ impl Instruction for JmpRet {
 }
 
 impl Instruction for Jsr {
-    fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
+    fn exe(&self, value: u16, reg: &mut Registers, _mem: &mut Memory) {
         /*
         JSR - | 0100 1 00000000000   |
               | ---- - -----------   |
@@ -239,7 +243,7 @@ impl Instruction for Lea {
 }
 
 impl Instruction for Not {
-    fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
+    fn exe(&self, value: u16, reg: &mut Registers, _mem: &mut Memory) {
         /*
         NOT - | 1001 000 000 111111 |
               | ---- --- --- ------ |
@@ -302,13 +306,31 @@ impl Instruction for Trap {
 }
 
 fn get_offset(mut value: u16, num_bits: i32) -> u16 {
-    let mut pos = 1;
+    /*
+    Every number passed here is a 2's complement signed integer.
+    Therefore, we need to check if the right-most bit is a `1`.
+    if true, exend entire number with ones.
+    */
+    let mut pos: u32 = 1;
     let mut buf: u16 = 0;
+    let mut bit = 0;
 
     for _ in 0..num_bits {
-        buf += (value % 2) * pos;
+        bit = (value % 2) * pos as u16;
+        buf += bit;
         pos *= 2;
         value = value >> 1;
+    }
+
+    // value is negative if the last bit was not zero
+    if bit > 1 {
+        let remaning_bits = 16 - num_bits;
+
+        for _ in 0..remaning_bits {
+            buf += pos as u16;
+            pos *= 2;
+            println!("flags: {:#018b}", buf);
+        }
     }
 
     return buf;
@@ -354,7 +376,7 @@ mod test {
 
         assert!(reg.get(2) == 10);
 
-        let ins: u16 = 0b0000_010_001_1_00011;
+        let ins: u16 = 0b0000_010_001_1_00011; // 3
         add.exe(ins, &mut reg, &mut mem);
 
         assert!(reg.get(2) == 11);
@@ -364,11 +386,22 @@ mod test {
         assert!(reg.z == false);
         assert!(reg.p == true);
 
-        let ins: u16 = 0b0000_010_001_1_10110;
+        let ins: u16 = 0b0000_010_001_1_11000; // -8
         add.exe(ins, &mut reg, &mut mem);
+
+        assert!(reg.get(2) == 0);
 
         assert!(reg.n == false);
         assert!(reg.z == true);
+        assert!(reg.p == false);
+
+        let ins: u16 = 0b0000_010_000_1_11000; // R0 with -8
+        add.exe(ins, &mut reg, &mut mem);
+
+        assert!(reg.get(2) as i16 == -6);
+
+        assert!(reg.n == true);
+        assert!(reg.z == false);
         assert!(reg.p == false);
     }
 
