@@ -109,21 +109,18 @@ impl Instruction for And {
                 let v1 = reg.get(sr1 as usize);
                 let v2 = reg.get(sr2 as usize);
                 new_value = v1 & v2;
-
-                reg.set(dr as usize, new_value);
             },
             1 => {
                 i -= code >> 5;
                 let reg_val = reg.get(sr1 as usize);
                 let imm_val = i;
                 new_value = reg_val & imm_val;
-                
-                reg.set(dr as usize, new_value);
             },
             _ => {
                 unreachable!();
             },
-        }
+        }   
+        reg.set(dr as usize, new_value);
 
         set_nzp(reg, new_value)
     }
@@ -416,6 +413,10 @@ mod test {
         and.exe(ins, &mut reg, &mut mem);
 
         assert!(reg.get(2) == 1);
+
+        assert!(reg.n == false);
+        assert!(reg.z == false);
+        assert!(reg.p == true);
 
         ins = 0b0000_010_001_1_11001;
         and.exe(ins, &mut reg, &mut mem);
