@@ -432,6 +432,18 @@ mod test {
         let mut reg = super::Registers::new();
         let not = super::Not {};
 
+        reg.set(1, 0b0000_0000_0000_0000);
+
+        let ins: u16 = 0b0000_000_001_111111;
+        not.exe(ins, &mut reg, &mut mem);
+
+        assert!(reg.get(0) != reg.get(1));
+        assert!(reg.get(0) == !reg.get(1));
+
+        assert!(reg.n == false);
+        assert!(reg.z == false);
+        assert!(reg.p == true);
+
         reg.set(1, 0b0000_1111_0101_1010);
 
         let ins: u16 = 0b0000_000_001_111111;
@@ -439,6 +451,10 @@ mod test {
 
         assert!(reg.get(0) != reg.get(1));
         assert!(reg.get(0) == !reg.get(1));
+
+        assert!(reg.n == false);
+        assert!(reg.z == false);
+        assert!(reg.p == true);
 
         reg.set(1, 0b1101_1011_1111_1110);
         not.exe(ins, &mut reg, &mut mem);
