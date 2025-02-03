@@ -157,7 +157,7 @@ impl Instruction for JmpRet {
         let cut_off = value >> 6;
         let base_reg = cut_off >> 3;
 
-        reg.pc = reg.get(base_reg);
+        reg.pc = reg.get(base_reg as usize);
     }
 }
 
