@@ -145,7 +145,19 @@ impl Instruction for Br {
 
 impl Instruction for JmpRet {
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
+        /*
+        JMP - | 1100 000 000 111111 |
+              | ---- --- --- ------ |
+              | op       baser      |
+              +---------------------+
+        JMP - | 1100 000 111 111111 |
+              | ---- --- --- ------ |
+              | op       r7         |
+        */
+        let cut_off = value >> 6;
+        let base_reg = cut_off >> 3;
 
+        reg.pc = reg.get(base_reg);
     }
 }
 
