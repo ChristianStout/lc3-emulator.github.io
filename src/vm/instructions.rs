@@ -260,11 +260,13 @@ impl Instruction for Not {
         let dr = i >> 9;
         i -= dr << 9;
         let sr = i >> 6;
-        i -= dr << 6;
 
         let old_val = reg.get(sr as usize);
-        
-        reg.set(dr as usize, !old_val);
+        let not_val = !old_val;
+
+        reg.set(dr as usize, not_val);
+
+        set_nzp(reg, not_val);
     }
 }
 
@@ -443,7 +445,7 @@ mod test {
         let mut reg = super::Registers::new();
         let not = super::Not {};
 
-        reg.set(1, 0b0000_0000_0000_0000);
+        reg.set(1, 0b0000_0101_0000_1111);
 
         let ins: u16 = 0b0000_000_001_111111;
         not.exe(ins, &mut reg, &mut mem);
@@ -451,9 +453,9 @@ mod test {
         assert!(reg.get(0) != reg.get(1));
         assert!(reg.get(0) == !reg.get(1));
 
-        assert!(reg.n == false);
+        assert!(reg.n == true);
         assert!(reg.z == false);
-        assert!(reg.p == true);
+        assert!(reg.p == false);
 
         reg.set(1, 0b0000_1111_0101_1010);
 
@@ -463,9 +465,9 @@ mod test {
         assert!(reg.get(0) != reg.get(1));
         assert!(reg.get(0) == !reg.get(1));
 
-        assert!(reg.n == false);
+        assert!(reg.n == true);
         assert!(reg.z == false);
-        assert!(reg.p == true);
+        assert!(reg.p == false);
 
         reg.set(1, 0b1101_1011_1111_1110);
         not.exe(ins, &mut reg, &mut mem);
@@ -473,7 +475,19 @@ mod test {
         assert!(reg.get(0) != reg.get(1));
         assert!(reg.get(0) == !reg.get(1));
 
-        // TODO: Account for NZP bits
+        assert!(reg.n == false);
+        assert!(reg.z == false);
+        assert!(reg.p == true);
+
+        reg.set(1, 0b1111_1111_1111_1111);
+        not.exe(ins, &mut reg, &mut mem);
+
+        assert!(reg.get(0) != reg.get(1));
+        assert!(reg.get(0) == !reg.get(1));
+
+        assert!(reg.n == false);
+        assert!(reg.z == true);
+        assert!(reg.p == false);
     }
 
     #[test]
