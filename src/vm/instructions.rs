@@ -331,9 +331,9 @@ fn get_offset(mut value: u16, num_bits: i32) -> u16 {
 
     // value is negative if the last bit was not zero
     if bit > 1 {
-        let remaning_bits = 16 - num_bits;
+        let remaining_bits = 16 - num_bits;
 
-        for _ in 0..remaning_bits {
+        for _ in 0..remaining_bits {
             buf += pos as u16;
             pos *= 2;
         }
