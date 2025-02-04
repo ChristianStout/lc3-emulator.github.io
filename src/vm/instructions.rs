@@ -146,16 +146,15 @@ impl Instruction for Br {
 impl Instruction for JmpRet {
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
         /*
-        JMP - | 1100 000 000 111111 |
+        JMP - | 1100 000 000 000000 |
               | ---- --- --- ------ |
               | op       baser      |
               +---------------------+
-        JMP - | 1100 000 111 111111 |
+        JMP - | 1100 000 111 000000 |
               | ---- --- --- ------ |
               | op       r7         |
         */
-        let cut_off = value >> 6;
-        let base_reg = cut_off >> 3;
+        let base_reg = value >> 6;
 
         reg.pc = reg.get(base_reg as usize);
     }
@@ -475,5 +474,55 @@ mod test {
         assert!(reg.get(0) == !reg.get(1));
 
         // TODO: Account for NZP bits
+    }
+
+    #[test]
+    fn test_jmp() {
+        let mut mem = super::Memory::new();
+        let mut reg = super::Registers::new();
+        let jmp = super::JmpRet {};
+
+        let ins: u16 = 0b0000_000_001_000000;
+        reg.pc = 16;
+        reg.set(1, 4000);
+
+        jmp.exe(ins, &mut reg, &mut mem);
+
+        assert!(reg.pc != 16);
+        assert!(reg.pc == 4000);
+
+        let ins: u16 = 0b0000_000_011_000000;
+        reg.set(3, 2048);
+
+        jmp.exe(ins, &mut reg, &mut mem);
+
+        assert!(reg.pc != 4000);
+        assert!(reg.pc == 2048);
+    }
+
+    #[test]
+    fn test_ret() {
+        let mut mem = Memory::new();
+        let mut reg = super::Registers::new();
+        let ret = super::JmpRet {};
+
+        let mut mem = super::Memory::new();
+        let mut reg = super::Registers::new();
+        let jmp = super::JmpRet {};
+
+        let ins: u16 = 0b0000_000_111_000000; // CAN NEVER CHANGE. RET is a completely static instruction
+        reg.pc = 16;
+        reg.set(7, 999);
+
+        jmp.exe(ins, &mut reg, &mut mem);
+
+        assert!(reg.pc != 16);
+        assert!(reg.pc == 999);
+
+        reg.set(7, 2190);
+        jmp.exe(ins, &mut reg, &mut mem);
+
+        assert!(reg.pc != 999);
+        assert!(reg.pc == 2190);
     }
 }
