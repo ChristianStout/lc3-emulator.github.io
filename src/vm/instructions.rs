@@ -226,7 +226,20 @@ impl Instruction for Ldi {
 
 impl Instruction for Ldr {
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
+        /*
+        LDR - | 0110 000 000 000000 |
+              | ---- --- --- ------ |
+              | op   dr  br  offset6|
+        */
+        let mut buffer = value;
+        let dr = buffer >> 9;
+        buffer -= dr << 9;
+        let base_r = buffer >> 6;
+        let offset = get_offset(value, 6);
 
+        let address = mem.get(base_r) + offset;
+        let new_value = mem.get(address);
+        reg.set(dr as usize, new_value);
     }
 }
 
