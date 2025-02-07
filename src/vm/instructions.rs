@@ -452,6 +452,92 @@ mod test {
         // TODO: Account for NZP bits
     }
 
+
+    #[test]
+    fn test_br() {
+        unimplemented!();
+    }
+
+    #[test]
+    fn test_jmp() {
+        let mut mem = super::Memory::new();
+        let mut reg = super::Registers::new();
+        let jmp = super::JmpRet {};
+
+        let ins: u16 = 0b0000_000_001_000000;
+        reg.pc = 16;
+        reg.set(1, 4000);
+
+        jmp.exe(ins, &mut reg, &mut mem);
+
+        assert!(reg.pc != 16);
+        assert!(reg.pc == 4000);
+
+        let ins: u16 = 0b0000_000_011_000000;
+        reg.set(3, 2048);
+
+        jmp.exe(ins, &mut reg, &mut mem);
+
+        assert!(reg.pc != 4000);
+        assert!(reg.pc == 2048);
+    }
+
+    #[test]
+    fn test_ret() {
+        let mut mem = Memory::new();
+        let mut reg = super::Registers::new();
+        let ret = super::JmpRet {};
+
+        let mut mem = super::Memory::new();
+        let mut reg = super::Registers::new();
+        let jmp = super::JmpRet {};
+
+        let ins: u16 = 0b0000_000_111_000000; // CAN NEVER CHANGE. RET is a completely static instruction
+        reg.pc = 16;
+        reg.set(7, 999);
+
+        jmp.exe(ins, &mut reg, &mut mem);
+
+        assert!(reg.pc != 16);
+        assert!(reg.pc == 999);
+
+        reg.set(7, 2190);
+        jmp.exe(ins, &mut reg, &mut mem);
+
+        assert!(reg.pc != 999);
+        assert!(reg.pc == 2190);
+    }
+
+    #[test]
+    fn test_jsr() {
+        unimplemented!();
+    }
+
+    #[test]
+    fn test_jsrr() {
+        unimplemented!();
+    }
+
+    #[test]
+    fn test_ld() {
+        unimplemented!();
+    }
+
+    #[test]
+    fn test_ldi() {
+        unimplemented!();
+    }
+
+    #[test]
+    fn test_ldr() {
+        unimplemented!();
+    }
+
+    #[test]
+    fn test_lea() {
+        unimplemented!();
+    }
+
     #[test]
     fn test_not() {
         let mut mem = super::Memory::new();
@@ -504,52 +590,22 @@ mod test {
     }
 
     #[test]
-    fn test_jmp() {
-        let mut mem = super::Memory::new();
-        let mut reg = super::Registers::new();
-        let jmp = super::JmpRet {};
-
-        let ins: u16 = 0b0000_000_001_000000;
-        reg.pc = 16;
-        reg.set(1, 4000);
-
-        jmp.exe(ins, &mut reg, &mut mem);
-
-        assert!(reg.pc != 16);
-        assert!(reg.pc == 4000);
-
-        let ins: u16 = 0b0000_000_011_000000;
-        reg.set(3, 2048);
-
-        jmp.exe(ins, &mut reg, &mut mem);
-
-        assert!(reg.pc != 4000);
-        assert!(reg.pc == 2048);
+    fn test_rti() {
+        unimplemented!();
     }
 
     #[test]
-    fn test_ret() {
-        let mut mem = Memory::new();
-        let mut reg = super::Registers::new();
-        let ret = super::JmpRet {};
+    fn test_st() {
+        unimplemented!();
+    }
 
-        let mut mem = super::Memory::new();
-        let mut reg = super::Registers::new();
-        let jmp = super::JmpRet {};
+    #[test]
+    fn test_sti() {
+        unimplemented!();
+    }
 
-        let ins: u16 = 0b0000_000_111_000000; // CAN NEVER CHANGE. RET is a completely static instruction
-        reg.pc = 16;
-        reg.set(7, 999);
-
-        jmp.exe(ins, &mut reg, &mut mem);
-
-        assert!(reg.pc != 16);
-        assert!(reg.pc == 999);
-
-        reg.set(7, 2190);
-        jmp.exe(ins, &mut reg, &mut mem);
-
-        assert!(reg.pc != 999);
-        assert!(reg.pc == 2190);
+    #[test]
+    fn test_str() {
+        unimplemented!();
     }
 }
