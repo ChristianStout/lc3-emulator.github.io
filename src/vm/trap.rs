@@ -1,10 +1,20 @@
 use super::{memory::Memory, registers::Registers};
-// use std::io::{Read, Write};
+use std::io::*;
 pub struct Trap;
 
 impl Trap {
     pub fn get_c(&self, reg: &mut Registers) {
+        let input: Option<i64> = std::io::stdin()
+            .bytes()
+            .next()
+            .and_then(|result| result.ok())
+            .map(|byte| byte as i64);
 
+        // Since input is an Option<i64>, which is an enum, we have to consider it's cases: Some and None.
+        match input {
+            Some(input) => reg.set(0, input as u16),
+            None => println!("Char: None"),
+        }
     }
 
     pub fn out(&self, reg: &mut Registers) {
