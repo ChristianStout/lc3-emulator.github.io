@@ -308,7 +308,7 @@ impl Instruction for Str {
 }
 
 impl Instruction for Trap {
-    fn exe(&self, value: u16, reg: &mut Registers, _mem: &mut Memory) {
+    fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
         /*
         TRAP - | 1111 0000 00000000 |
                | ---- ---- -------- |
@@ -319,7 +319,7 @@ impl Instruction for Trap {
         match code {
             20 => self.get_c(reg),
             21 => self.out(reg),
-            22 => self.put_s(reg),
+            22 => self.put_s(reg, mem),
             23 => self.r#in(reg),
             25 => self.halt(reg),
             _ => unreachable!(),
