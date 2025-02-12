@@ -330,6 +330,13 @@ impl Instruction for Str {
               | op   sr      offset6 |
                          base_r
         */
+        let mut buffer = value;
+        let sr = buffer >> 9;
+        buffer -= sr << 9;
+        let base_r = buffer >> 6;
+        let offset6 = get_offset(buffer, 6);
+
+        mem.set(reg.get(base_r as usize) + offset6, reg.get(sr as usize));
     }
 }
 
@@ -617,7 +624,7 @@ mod test {
 
     #[test]
     fn test_rti() {
-        unimplemented!();
+        // unimplemented!(); going to implement in later version.
     }
 
     #[test]
