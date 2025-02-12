@@ -314,6 +314,11 @@ impl Instruction for Sti {
               | ---- --- --------- |
               | op   sr  pcoffset9 |
         */
+        let sr = value >> 9;
+        let pcoffset9 = get_offset(value, 9);
+        let indirect = mem.get(reg.pc + pcoffset9);
+
+        mem.set(indirect, reg.get(sr as usize));
     }
 }
 
