@@ -285,25 +285,46 @@ impl Instruction for Not {
 
 impl Instruction for Rti {
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
-
+        /*
+        RTI - | 1000 000000000000 |
+              | ---- ------------ |
+              | op                |
+        */
     }
 }
 
 impl Instruction for St {
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
+        /*
+        ST  - | 0011 000 000000000 |
+              | ---- --- --------- |
+              | op   sr  pcoffset9 |
+        */
+        let sr = value >> 9;
+        let pcoffset9 = get_offset(value, 9);
 
+        mem.set(reg.pc + pcoffset9, reg.get(sr as usize));
     }
 }
 
 impl Instruction for Sti {
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
-
+        /*
+        STI - | 1011 000 000000000 |
+              | ---- --- --------- |
+              | op   sr  pcoffset9 |
+        */
     }
 }
 
 impl Instruction for Str {
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
-
+        /*
+        STR - | 0111 000 000 000000  |
+              | ---- --- --- ------  |
+              | op   sr      offset6 |
+                         base_r
+        */
     }
 }
 
