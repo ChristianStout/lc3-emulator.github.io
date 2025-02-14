@@ -12,17 +12,21 @@ pub enum Token {
 
 
 pub struct Lexer {
-    br_regex: Regex,
-    // instuction_regex: Regex,
+    ins_regex: Regex,
+    dir_regex: Regex,
+    ignore_regex: Regex,
 }
 
 impl Lexer {
     pub fn new() -> Lexer {
-        let br_regex: Regex = Regex::new(r#"^BR[n]?[z]?[p]?"#).unwrap();
-        
+        let ins_regex: Regex = Regex::new(r#""#).unwrap();
+        let dir_regex: Regex = Regex::new(r#"([A-Za-z][A-Za-z0-9]*\s)?(\s)*[.][A-Za-z0-9]*(\s)+(x[0-9]+|["].+["]|)?(\s)?(;.*)?[\n|\r|\n\r]"#).unwrap();
+        let ignore_regex: Regex = Regex::new(r#""#).unwrap();
+
         Lexer {
-            br_regex: br_regex,
-            // instuction_regex:
+            ins_regex: ins_regex,
+            dir_regex: dir_regex,
+            ignore_regex: ignore_regex,
         }
     }
 }
