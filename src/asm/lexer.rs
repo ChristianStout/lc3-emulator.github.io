@@ -21,7 +21,7 @@ impl Lexer {
     pub fn new() -> Lexer {
         let ins_regex: Regex = Regex::new(r#""#).unwrap();
         let dir_regex: Regex = Regex::new(r#"([A-Za-z][A-Za-z0-9]*\s)?(\s)*[.][A-Za-z0-9]*(\s)+(x[0-9]+|["].+["]|)?(\s)?(;.*)?[\n|\r|\n\r]"#).unwrap();
-        let ignore_regex: Regex = Regex::new(r#""#).unwrap();
+        let ignore_regex: Regex = Regex::new(r#"(\s)*(;.+)?[\n|\r|\n\r]"#).unwrap();
 
         Lexer {
             ins_regex: ins_regex,
