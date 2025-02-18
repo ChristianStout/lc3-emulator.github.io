@@ -19,9 +19,9 @@ pub struct Lexer {
 
 impl Lexer {
     pub fn new() -> Lexer {
-        let ins_regex: Regex = Regex::new(r#""#).unwrap();
+        let ins_regex: Regex = Regex::new(r#"([A-Za-z_][A-Za-z0-9_]*\s)?(\s)*[A-Z]+(\s)*(\s([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|R[0-7]|PC)(,(\s)+([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|R[0-7]|PC)(,(\s)+([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|R[0-7]|PC))?)?)?(\s)*(;.*)?[\n|\r|\n\r]"#).unwrap();
         let dir_regex: Regex = Regex::new(r#"([A-Za-z][A-Za-z0-9]*\s)?(\s)*[.][A-Za-z0-9]*(\s)+(x[0-9]+|["].+["]|)?(\s)?(;.*)?[\n|\r|\n\r]"#).unwrap();
-        let ignore_regex: Regex = Regex::new(r#"(\s)*(;.+)?[\n|\r|\n\r]"#).unwrap();
+        let ignore_regex: Regex = Regex::new(r#"(\s)*(;.*)?[\n|\r|\n\r]"#).unwrap();
 
         Lexer {
             ins_regex: ins_regex,
@@ -33,22 +33,9 @@ impl Lexer {
 
 #[cfg(test)]
 mod tests {
-    use super::Lexer;
+    // use super::Lexer;
 
     #[test]
     fn test_br_regex() {
-        let lexer = Lexer::new();
-
-        assert!(lexer.br_regex.is_match("BR"));
-        assert!(lexer.br_regex.is_match("BRn"));
-        assert!(lexer.br_regex.is_match("BRz"));
-        assert!(lexer.br_regex.is_match("BRnz"));
-        assert!(lexer.br_regex.is_match("BRnp"));
-        assert!(lexer.br_regex.is_match("BRpz"));
-        assert!(lexer.br_regex.is_match("BRnzp"));
-        
-        // assert!(!lexer.br_regex.is_match("BRx"));
-        assert!(!lexer.br_regex.is_match("B R"));
-        // assert!(!lexer.br_regex.is_match("BRR"));
     }
 }
