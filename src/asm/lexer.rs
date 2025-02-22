@@ -1,17 +1,18 @@
-use super::asm_ins::OpcodeIns;
+use super::asm_ins::*;
 use regex::Regex;
 
 
 pub enum Token {
     Label(String),
     Instruction(OpcodeIns),
-    Directive(String),
+    Directive(Directive),
     Number(i16),
 }
 
 
 
 pub struct Lexer {
+    token_buffer: Vec<Token>,
     ins_regex: Regex,
     dir_regex: Regex,
     ignore_regex: Regex,
@@ -24,10 +25,34 @@ impl Lexer {
         let ignore_regex: Regex = Regex::new(r#"(\s)*(;.*)?[\n|\r|\n\r]"#).unwrap();
 
         Lexer {
+            token_buffer: vec![],
             ins_regex: ins_regex,
             dir_regex: dir_regex,
             ignore_regex: ignore_regex,
         }
+    }
+
+    pub fn run(&mut self, input_file: Vec<&str>) -> Vec<Token>{
+        for (num, line) in input_file.into_iter().enumerate() {
+            if self.ins_regex.is_match(line) {
+                self.parse_instruction(line);
+            }
+            if self.dir_regex.is_match(line) {
+                self.parse_directive(line);
+            }
+            if !self.ignore_regex.is_match(line) {
+                panic!("Panic in Lexer::run(). Somehow a line was not an intruction, directive, or ignorable.")
+            }
+        }
+        vec![]
+    }
+
+    pub fn parse_instruction(&mut self, line: &str) {
+        let split_line: Vec<&str> = line.split_whitespace().collect();
+    }
+
+    pub fn parse_directive(&mut self, line: &str) {
+        let split_line: Vec<&str> = line.split_whitespace().collect();
     }
 }
 

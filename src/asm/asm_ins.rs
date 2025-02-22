@@ -1,4 +1,12 @@
 
+pub enum Directive {
+    ORIG(u16),
+    FILL(u16),
+    BLKW(i16),
+    STRINGZ(String),
+    END,
+}
+
 #[derive(Debug, PartialEq)]
 #[allow(dead_code)]
 pub enum OpcodeIns {
