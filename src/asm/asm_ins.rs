@@ -26,7 +26,7 @@ pub enum OpcodeIns {
     Str,
     Trap,
     Reserved,
-    INVALID
+    INVALID,
 }
 
 #[allow(dead_code)]

@@ -1,5 +1,6 @@
 use super::asm_ins::*;
-use regex::Regex;
+use super::syntax::SyntaxChecker;
+
 
 
 pub enum Token {
@@ -13,34 +14,28 @@ pub enum Token {
 
 pub struct Lexer {
     token_buffer: Vec<Token>,
-    ins_regex: Regex,
-    dir_regex: Regex,
-    ignore_regex: Regex,
+    syntax_checker: SyntaxChecker,
 }
 
 impl Lexer {
     pub fn new() -> Lexer {
-        let ins_regex: Regex = Regex::new(r#"([A-Za-z_][A-Za-z0-9_]*\s)?(\s)*[A-Z]+(\s)*(\s([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|R[0-7]|PC)(,(\s)+([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|R[0-7]|PC)(,(\s)+([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|R[0-7]|PC))?)?)?(\s)*(;.*)?[\n|\r|\n\r]"#).unwrap();
-        let dir_regex: Regex = Regex::new(r#"([A-Za-z][A-Za-z0-9]*\s)?(\s)*[.][A-Za-z0-9]*(\s)+(x[0-9]+|["].+["]|)?(\s)?(;.*)?[\n|\r|\n\r]"#).unwrap();
-        let ignore_regex: Regex = Regex::new(r#"(\s)*(;.*)?[\n|\r|\n\r]"#).unwrap();
-
         Lexer {
             token_buffer: vec![],
-            ins_regex: ins_regex,
-            dir_regex: dir_regex,
-            ignore_regex: ignore_regex,
+            syntax_checker: SyntaxChecker::new(),
         }
     }
 
     pub fn run(&mut self, input_file: Vec<&str>) -> Vec<Token>{
         for (num, line) in input_file.into_iter().enumerate() {
-            if self.ins_regex.is_match(line) {
+            if self.syntax_checker.is_ins(line) {
                 self.parse_instruction(line);
             }
-            if self.dir_regex.is_match(line) {
+            if self.syntax_checker.is_dir(line) {
                 self.parse_directive(line);
             }
-            if !self.ignore_regex.is_match(line) {
+            if !self.syntax_checker.is_ignore(line) {
+                // TODO: Add Error struct with a `discover_error` function
+                //      that takes in any known information.
                 panic!("Panic in Lexer::run(). Somehow a line was not an intruction, directive, or ignorable.")
             }
         }
