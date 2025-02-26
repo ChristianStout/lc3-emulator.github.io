@@ -12,45 +12,91 @@ pub enum Directive {
 pub enum OpcodeIns {
     Add,
     And,
-    Br,
-    JmpRet,
+    Br(bool, bool, bool),
+    Jmp,
     Jsr,
+    Jsrr,
     Ld,
     Ldi,
     Ldr,
     Lea,
     Not,
+    Ret,
     Rti,
     St,
     Sti,
     Str,
-    Trap,
+    Trap(u16),
     Reserved,
     INVALID,
 }
 
 #[allow(dead_code)]
 impl OpcodeIns {
-    pub fn from(opcode: u8) -> Self {
-        match opcode {
-            0 => Self::Br,
-            1 => Self::Add,
-            2 => Self::Ld,
-            3 => Self::St,
-            4 => Self::Jsr,
-            5 => Self::And,
-            6 => Self::Ldr,
-            7 => Self::Str,
-            8 => Self::Rti,
-            9 => Self::Not,
-            10 => Self::Ldi,
-            11 => Self::Sti,
-            12 => Self::JmpRet,
-            13 => Self::Reserved,
-            14 => Self::Lea,
-            15 => Self::Trap,
-            _ => Self::INVALID,
+    pub fn from(name: &str) -> OpcodeIns {
+        let upper_name: &str = &name.to_uppercase();
+
+        if &upper_name[..2] == "BR" {
+            return OpcodeIns::get_br(&upper_name[2..]);
         }
+
+        match upper_name {
+            "ADD" => return OpcodeIns::Add,
+            "AND" => return OpcodeIns::And,
+            "JMP" => return OpcodeIns::Jmp,
+            "JSR" => return OpcodeIns::Jsr,
+            "JSRR" => return OpcodeIns::Jsrr,
+            "LD" => return OpcodeIns::Ld,
+            "LDI" => return OpcodeIns::Ldi,
+            "LDR" => return OpcodeIns::Ldr,
+            "LEA" => return OpcodeIns::Lea,
+            "NOT" => return OpcodeIns::Not,
+            "RET" => return OpcodeIns::Ret,
+            "RTI" => return OpcodeIns::Rti,
+            "ST" => return OpcodeIns::St,
+            "STI" => return OpcodeIns::Sti,
+            "STR" => return OpcodeIns::Str,
+            "GETC" => return OpcodeIns::Trap(20),
+            "OUT" => return OpcodeIns::Trap(21),
+            "PUTS" => return OpcodeIns::Trap(22),
+            "IN" => return OpcodeIns::Trap(23),
+            "HALT" => return OpcodeIns::Trap(25),
+            _ => return OpcodeIns::INVALID,
+        }
+    }
+
+    fn get_br(nzp: &str) -> OpcodeIns {
+        // nzp only contained everything AFTER br, that being nzp
+
+        let mut n = false;
+        let mut z = false;
+        let mut p = false;
+
+        for c in nzp.chars() {
+            match c {
+                'N' => {
+                    if n {
+                        return OpcodeIns::INVALID;
+                    }
+                    n = true;
+                },
+                'Z' => {
+                    if z {
+                        return OpcodeIns::INVALID;
+                    }
+                    z = true;
+                },
+                'P' => {
+                    if p {
+                        return OpcodeIns::INVALID;
+                    }
+                    p = true;
+                },
+                _ => return OpcodeIns::INVALID,
+            }
+        }
+
+        return OpcodeIns::Br(n, z, p);
     }
 }
 
@@ -58,29 +104,87 @@ impl OpcodeIns {
 #[cfg(test)]
 mod tests {
     use crate::asm::asm_ins::*;
- 
+
     #[test]
-    fn test_ins_map() {
-        assert_eq!(OpcodeIns::from(0), OpcodeIns::Br);
-        assert_eq!(OpcodeIns::from(1), OpcodeIns::Add);
-        assert_eq!(OpcodeIns::from(2), OpcodeIns::Ld);
-        assert_eq!(OpcodeIns::from(3), OpcodeIns::St);
-        assert_eq!(OpcodeIns::from(4), OpcodeIns::Jsr);
-        assert_eq!(OpcodeIns::from(5), OpcodeIns::And);
-        assert_eq!(OpcodeIns::from(6), OpcodeIns::Ldr);
-        assert_eq!(OpcodeIns::from(7), OpcodeIns::Str);
-        assert_eq!(OpcodeIns::from(8), OpcodeIns::Rti);
-        assert_eq!(OpcodeIns::from(9), OpcodeIns::Not);
-        assert_eq!(OpcodeIns::from(10), OpcodeIns::Ldi);
-        assert_eq!(OpcodeIns::from(11), OpcodeIns::Sti);
-        assert_eq!(OpcodeIns::from(12), OpcodeIns::JmpRet);
-        assert_eq!(OpcodeIns::from(13), OpcodeIns::Reserved);
-        assert_eq!(OpcodeIns::from(14), OpcodeIns::Lea);
-        assert_eq!(OpcodeIns::from(15), OpcodeIns::Trap);
+    fn test_get_ins_from_str() {
+        assert!(OpcodeIns::from("ADD") == OpcodeIns::Add);
+        assert!(OpcodeIns::from("AND") == OpcodeIns::And);
+        assert!(OpcodeIns::from("BR") == OpcodeIns::Br(false, false, false));
+        assert!(OpcodeIns::from("BRnzp") == OpcodeIns::Br(true, true, true));
+        assert!(OpcodeIns::from("JMP") == OpcodeIns::Jmp);
+        assert!(OpcodeIns::from("JSR") == OpcodeIns::Jsr);
+        assert!(OpcodeIns::from("JSRR") == OpcodeIns::Jsrr);
+        assert!(OpcodeIns::from("LD") == OpcodeIns::Ld);
+        assert!(OpcodeIns::from("LDI") == OpcodeIns::Ldi);
+        assert!(OpcodeIns::from("LDR") == OpcodeIns::Ldr);
+        assert!(OpcodeIns::from("LEA") == OpcodeIns::Lea);
+        assert!(OpcodeIns::from("NOT") == OpcodeIns::Not);
+        assert!(OpcodeIns::from("RET") == OpcodeIns::Ret);
+        assert!(OpcodeIns::from("RTI") == OpcodeIns::Rti);
+        assert!(OpcodeIns::from("ST") == OpcodeIns::St);
+        assert!(OpcodeIns::from("STI") == OpcodeIns::Sti);
+        assert!(OpcodeIns::from("STR") == OpcodeIns::Str);
+        assert!(OpcodeIns::from("GETC") == OpcodeIns::Trap(20));
+        assert!(OpcodeIns::from("OUT") == OpcodeIns::Trap(21));
+        assert!(OpcodeIns::from("PUTS") == OpcodeIns::Trap(22));
+        assert!(OpcodeIns::from("IN") == OpcodeIns::Trap(23));
+        assert!(OpcodeIns::from("HALT") == OpcodeIns::Trap(25));
+
+
+        assert!(OpcodeIns::from("HALTT") == OpcodeIns::INVALID);
+        assert!(OpcodeIns::from("LLEA") == OpcodeIns::INVALID);
+        assert!(OpcodeIns::from("LEAA") == OpcodeIns::INVALID);
+        assert!(OpcodeIns::from("LEEA") == OpcodeIns::INVALID);
+        assert!(OpcodeIns::from("WHAT") == OpcodeIns::INVALID);
+        assert!(OpcodeIns::from("VAR") == OpcodeIns::INVALID);
+        assert!(OpcodeIns::from("OKAYTHEN") == OpcodeIns::INVALID);
+        assert!(OpcodeIns::from("WHATAMIEVENDOINGRIGHTNOW???") == OpcodeIns::INVALID);
     }
 
     #[test]
-    fn test_ins_map_invalid() {
-        assert_eq!(OpcodeIns::from(16), OpcodeIns::INVALID);
+    fn test_get_ins_from_str_case_sesitivity() {
+        assert!(OpcodeIns::from("add") == OpcodeIns::Add);
+        assert!(OpcodeIns::from("Add") == OpcodeIns::Add);
+        assert!(OpcodeIns::from("ADd") == OpcodeIns::Add);
+        assert!(OpcodeIns::from("AdD") == OpcodeIns::Add);
+        assert!(OpcodeIns::from("aDd") == OpcodeIns::Add);
+        assert!(OpcodeIns::from("aDD") == OpcodeIns::Add);
+        assert!(OpcodeIns::from("adD") == OpcodeIns::Add);
+        assert!(OpcodeIns::from("ADD") == OpcodeIns::Add);
+
+        assert!(OpcodeIns::from("and") == OpcodeIns::And);
+        assert!(OpcodeIns::from("aNd") == OpcodeIns::And);
+        assert!(OpcodeIns::from("AND") == OpcodeIns::And);
+
+
+        assert!(OpcodeIns::from("not") == OpcodeIns::Not);
+        assert!(OpcodeIns::from("NOT") == OpcodeIns::Not);
+        assert!(OpcodeIns::from("LD") == OpcodeIns::Ld);
+        assert!(OpcodeIns::from("lD") == OpcodeIns::Ld);
+        assert!(OpcodeIns::from("hAlT") == OpcodeIns::Trap(25));
+        assert!(OpcodeIns::from("halt") == OpcodeIns::Trap(25));
+    }
+
+    #[test]
+    fn test_get_br() {
+        assert!(OpcodeIns::get_br("") == OpcodeIns::Br(false, false, false));
+        assert!(OpcodeIns::get_br("N") == OpcodeIns::Br(true, false, false));
+        assert!(OpcodeIns::get_br("NZ") == OpcodeIns::Br(true, true, false));
+        assert!(OpcodeIns::get_br("NP") == OpcodeIns::Br(true, false, true));
+        assert!(OpcodeIns::get_br("Z") == OpcodeIns::Br(false, true, false));
+        assert!(OpcodeIns::get_br("ZP") == OpcodeIns::Br(false, true, true));
+        assert!(OpcodeIns::get_br("NZP") == OpcodeIns::Br(true, true, true));
+
+        assert!(OpcodeIns::get_br("NN") == OpcodeIns::INVALID);
+        assert!(OpcodeIns::get_br("PP") == OpcodeIns::INVALID);
+        assert!(OpcodeIns::get_br("ZZ") == OpcodeIns::INVALID);
+
+        assert!(OpcodeIns::get_br("NZZP") == OpcodeIns::INVALID);
+        assert!(OpcodeIns::get_br("NNZZPP") == OpcodeIns::INVALID);
+        assert!(OpcodeIns::get_br("M") == OpcodeIns::INVALID);
+        assert!(OpcodeIns::get_br("PR") == OpcodeIns::INVALID);
+        assert!(OpcodeIns::get_br("?") == OpcodeIns::INVALID);
+        assert!(OpcodeIns::get_br("ADD") == OpcodeIns::INVALID);
+        assert!(OpcodeIns::get_br("okay") == OpcodeIns::INVALID);
     }
 }

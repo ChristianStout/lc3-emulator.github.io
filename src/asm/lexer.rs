@@ -1,5 +1,6 @@
 use super::asm_ins::*;
 use super::syntax::SyntaxChecker;
+use regex::Regex;
 
 
 
@@ -25,7 +26,7 @@ impl Lexer {
         }
     }
 
-    pub fn run(&mut self, input_file: Vec<&str>) -> Vec<Token>{
+    pub fn run(&mut self, input_file: Vec<&str>) -> Vec<Token> {
         for (num, line) in input_file.into_iter().enumerate() {
             if self.syntax_checker.is_ins(line) {
                 self.parse_instruction(line);
@@ -35,11 +36,12 @@ impl Lexer {
             }
             if !self.syntax_checker.is_ignore(line) {
                 // TODO: Add Error struct with a `discover_error` function
-                //      that takes in any known information.
-                panic!("Panic in Lexer::run(). Somehow a line was not an intruction, directive, or ignorable.")
+                //      that takes in any known information. This should also
+                //      be able to display EVERY current error, so a vector.
+                panic!("SYNTAX ERROR: On line {num}, neither an instruction nor directive was given.")
             }
         }
-        vec![]
+        return vec![];
     }
 
     pub fn parse_instruction(&mut self, line: &str) {

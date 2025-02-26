@@ -1,5 +1,3 @@
-use core::num;
-
 use super::registers::Registers;
 use super::memory::Memory;
 use super::trap::Trap;
