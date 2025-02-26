@@ -33,6 +33,7 @@ pub enum OpcodeIns {
 
 #[allow(dead_code)]
 impl OpcodeIns {
+    // TODO: add get_code() function
     pub fn from(name: &str) -> OpcodeIns {
         let upper_name: &str = &name.to_uppercase();
 
