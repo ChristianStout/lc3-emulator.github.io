@@ -1,4 +1,5 @@
 
+#[derive(Debug, Clone)]
 pub enum Directive {
     ORIG(u16),
     FILL(u16),
@@ -7,7 +8,19 @@ pub enum Directive {
     END,
 }
 
-#[derive(Debug, PartialEq)]
+pub enum OperandType {
+    /*
+    # OperandType
+    This enum refers to the types 
+    of operands an intruction could have
+    */
+    Reg,
+    Label,
+    Imm,
+    RegOrImm,
+}
+
+#[derive(Debug, PartialEq, Clone)]
 #[allow(dead_code)]
 pub enum OpcodeIns {
     Add,
@@ -63,6 +76,30 @@ impl OpcodeIns {
             "IN" => return OpcodeIns::Trap(23),
             "HALT" => return OpcodeIns::Trap(25),
             _ => return OpcodeIns::INVALID,
+        }
+    }
+
+
+    pub fn get_type(&self) -> Vec<OperandType> {
+        match self {
+            OpcodeIns::Add => vec![OperandType::Reg, OperandType::Reg, OperandType::RegOrImm],
+            OpcodeIns::And => vec![OperandType::Reg, OperandType::Reg, OperandType::RegOrImm],
+            OpcodeIns::Br(_,_,_) => vec![OperandType::Label],
+            OpcodeIns::Jmp => vec![OperandType::Reg],
+            OpcodeIns::Jsr => vec![OperandType::Label],
+            OpcodeIns::Jsrr => vec![OperandType::Reg],
+            OpcodeIns::Ld => vec![OperandType::Reg, OperandType::Label],
+            OpcodeIns::Ldi => vec![OperandType::Reg, OperandType::Label],
+            OpcodeIns::Ldr => vec![OperandType::Reg, OperandType::Reg, OperandType::Imm],
+            OpcodeIns::Lea => vec![OperandType::Reg, OperandType::Label],
+            OpcodeIns::Not => vec![OperandType::Reg, OperandType::Reg],
+            OpcodeIns::Ret => vec![],
+            OpcodeIns::Rti => vec![],
+            OpcodeIns::St => vec![OperandType::Reg, OperandType::Label],
+            OpcodeIns::Sti => vec![OperandType::Reg, OperandType::Label],
+            OpcodeIns::Str => vec![OperandType::Reg, OperandType::Reg, OperandType::Imm],
+            OpcodeIns::Trap(_) => vec![],
+            _ => vec![],
         }
     }
 

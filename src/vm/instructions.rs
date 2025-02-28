@@ -135,6 +135,8 @@ impl Instruction for Br {
         let z = get_bit_index(value, 5);
         let p = get_bit_index(value, 6);
 
+        // TODO: An unconditional branch is also if ALL ARE NEGATIVE!!!
+
         if (n == 1 && reg.n) || (z == 1 && reg.z) || (p == 1 && reg.p) {
             reg.pc += get_offset(value, 9);
         }

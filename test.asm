@@ -1,0 +1,7 @@
+this ADD R1, R2, R3
+
+RTI
+JMP R0
+
+NOT R1, R2
+

@@ -19,6 +19,14 @@ impl Asm {
 
         let split_file: Vec<&str> = input_file.split('\n').collect();
         let tokens = self.lexer.run(split_file);
+        
+        if self.lexer.errors.len() > 0 {
+            for error in self.lexer.errors.iter() {
+                error.print();
+            }
+        }
+
+        println!("TOKENS: {:?}", tokens);
 
         vec![]
     }
