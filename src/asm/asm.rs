@@ -1,5 +1,5 @@
-use super::asm_ins::*;
 use super::lexer::*;
+use super::semantic::*;
 
 pub struct Asm {
     lexer: Lexer,
