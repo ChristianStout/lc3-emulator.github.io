@@ -1,25 +1,14 @@
-use super::asm::Asm;
 use super::asm_ins::*;
 use super::syntax::SyntaxChecker;
 use super::asm_error::*;
+use super::token::*;
 use std::i16;
-
-#[derive(Debug, Clone)]
-pub enum Token {
-    Label(String),
-    Instruction(OpcodeIns),
-    Directive(Directive),
-    Number(i16),
-    String(String),
-    Register(u16),
-}
 
 pub struct Lexer {
     pub token_stream: Vec<Token>,
     pub errors: Vec<AsmError>,
     syntax_checker: SyntaxChecker,
     curr_line_num: i32,
-    curr_ins: OpcodeIns,
 }
 
 impl Lexer {
@@ -29,12 +18,10 @@ impl Lexer {
             errors: vec![],
             syntax_checker: SyntaxChecker::new(),
             curr_line_num: 0,
-            curr_ins: OpcodeIns::INVALID,
         }
     }
 
     pub fn run(&mut self, input_file: Vec<&str>) -> Vec<Token> {
-        println!("split_file: {:?}", input_file);
         for line in input_file {
             self.curr_line_num += 1;
 
@@ -101,18 +88,14 @@ impl Lexer {
     }
 
     fn parse_reg(&mut self, reg: &str, line: &str) {
-        println!("parse_reg -> reg: {reg}");
         // let num_str = "1";
         let num_str = &reg[1..];
-        println!("ASCII: {:?}", num_str.bytes().collect::<Vec<u8>>());
-
-        println!("parse_ren -> {}", num_str);
 
         let num = num_str
             .parse::<u16>()
             .expect("In Lexer::parse_reg(), a register somehow was not given a register number. This should't possible based on syntax");
 
-        if num >= 0 && num <= 7 {
+        if num <= 7 {
             self.token_stream.push(Token::Register(num));
             return;
         }
@@ -189,8 +172,4 @@ impl Lexer {
 #[cfg(test)]
 mod tests {
     // use super::Lexer;
-
-    #[test]
-    fn test_br_regex() {
-    }
 }
