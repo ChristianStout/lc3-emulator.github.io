@@ -1,3 +1,5 @@
+use std::fmt::format;
+
 use super::asm_ins::*;
 use super::directive::*;
 use super::syntax::SyntaxChecker;
@@ -67,12 +69,12 @@ impl Lexer {
                 self.token_stream.push(Token::Register(self.parse_register(word)));
                 continue;
             }
-            if self.syntax_checker.is_valid_label(word) {
-                self.token_stream.push(Token::Label(word.to_string()));
-                continue;
-            }
             if self.syntax_checker.is_valid_immediate_value(word) {
                 self.token_stream.push(Token::Number(self.parse_immediate_value(word)));
+                continue;
+            }
+            if self.syntax_checker.is_valid_label(word) {
+                self.token_stream.push(Token::Label(word.to_string()));
                 continue;
             }
 
@@ -99,8 +101,20 @@ impl Lexer {
         return register_num as u16;
     }
     
-    pub fn parse_immediate_value(&self, _word: &str) -> i16 {
-        0
+    pub fn parse_immediate_value(&self, word: &str) -> i16 {
+        match word.chars().nth(0).unwrap() {
+            '#' => {
+                return word[1..]
+                    .parse()
+                    .expect(&format!("Lexer::parse_immediate_value: The given number on line {} is not valid", self.curr_line_num));
+            },
+            'x' | 'X' => {
+                let base = 16;
+                return i16::from_str_radix(&word[1..], base)
+                    .expect(&format!("Lexer::parse_immediate_value: The given number on line {} is not valid", self.curr_line_num));
+            },
+            _ => unreachable!(),
+        }
     }
 }
 
