@@ -16,14 +16,14 @@ pub struct SyntaxChecker {
 #[allow(dead_code)]
 impl SyntaxChecker {
     pub fn new() -> SyntaxChecker {
-        let label = Regex::new(r#"[A-Za-z_][A-Za-z0-9_]*"#).unwrap();
-        let reg = Regex::new(r#"(R|r)[0-7]"#).unwrap();
-        let imm = Regex::new(r##"(#[0-9]+|x[0-9A-F]+)"##).unwrap();
+        let label = Regex::new(r#"[A-Za-z_][A-Za-z0-9_](,)?*"#).unwrap();
+        let reg = Regex::new(r#"(R|r)[0-7](,)?"#).unwrap();
+        let imm = Regex::new(r##"(#[0-9]+|x[0-9A-F]+)(,)?"##).unwrap();
         let string = Regex::new(r#"["].*["]"#).unwrap();
 
         let ins_line_regex: Regex = Regex::new(r#"([A-Za-z_][A-Za-z0-9_]*\s)?(\s)*[A-Z]+(\s)*(\s([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|R[0-7]|PC)(,(\s)+([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|R[0-7]|PC)(,(\s)+([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|R[0-7]|PC))?)?)?(\s)*(;.*)?"#).unwrap();
         let dir_line_regex: Regex = Regex::new(r#"([A-Za-z][A-Za-z0-9]*\s)?(\s)*[.][A-Za-z0-9]*(\s)+(x[0-9]+|["].+["]|)?(\s)?(;.*)?[\n|\r|\n\r]"#).unwrap();
-        let ignore_regex: Regex = Regex::new(r#"(\s)*(;.*)?"#).unwrap();
+        let ignore_regex: Regex = Regex::new(r#"^(\s)*(;.*)?$"#).unwrap();
 
         let ins_name = Regex::new(
             "(BR[N]?[Z]?[P]?)|ADD|AND|JMP|JSR|JSRR|LD|LDI|LDR|LEA|NOT|RET|RTI|ST|STI|STR|GETC|OUT|PUTS|IN|HALT"

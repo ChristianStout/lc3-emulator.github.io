@@ -1,13 +1,4 @@
 
-#[derive(Debug, Clone)]
-pub enum Directive {
-    ORIG(u16),
-    FILL(u16),
-    BLKW(i16),
-    STRINGZ(String),
-    END,
-}
-
 pub enum OperandType {
     /*
     # OperandType

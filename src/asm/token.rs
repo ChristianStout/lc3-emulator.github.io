@@ -1,4 +1,5 @@
 use super::asm_ins::*;
+use super::directive::*;
 
 #[derive(Debug, Clone)]
 pub enum Token {
