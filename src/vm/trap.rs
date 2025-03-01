@@ -21,11 +21,11 @@ impl Trap {
         print!("{}", reg.get(0) as u8 as char);
     }
 
-    pub fn put_s(&self, reg: &mut Registers, mem: &mut Memory) {
+    pub fn put_s(&self, _reg: &mut Registers, _mem: &mut Memory) {
 
     }
 
-    pub fn r#in(&self, reg:&mut Registers) {
+    pub fn r#in(&self, _reg:&mut Registers) {
         
     }
 

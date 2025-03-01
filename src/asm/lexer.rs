@@ -159,13 +159,6 @@ impl Lexer {
             self.parse_imm(reg_or_imm, line);
             return;
         }
-
-        self.errors.push(AsmError::new(
-            line, 
-            self.curr_line_num, 
-            ErrorType::OperandError, 
-            &format!("a regitser or immediate value was supposed to be given, but instead `{reg_or_imm}` was given." )   
-        ))
     }
 }
 

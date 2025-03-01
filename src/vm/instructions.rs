@@ -144,7 +144,7 @@ impl Instruction for Br {
 }
 
 impl Instruction for JmpRet {
-    fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
+    fn exe(&self, value: u16, reg: &mut Registers, _mem: &mut Memory) {
         /*
         JMP - | 1100 000 000 000000 |
               | ---- --- --- ------ |
@@ -284,7 +284,7 @@ impl Instruction for Not {
 }
 
 impl Instruction for Rti {
-    fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
+    fn exe(&self, _value: u16, _reg: &mut Registers, _mem: &mut Memory) {
         /*
         RTI - | 1000 000000000000 |
               | ---- ------------ |

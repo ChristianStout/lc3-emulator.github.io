@@ -6,9 +6,7 @@ use std::env;
 use std::fs;
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-
-    println!("{:?}", args);
+    let _args: Vec<String> = env::args().collect();
 
     // // Assume argument 1 is the file path
     // let file_path = args.get(1)
