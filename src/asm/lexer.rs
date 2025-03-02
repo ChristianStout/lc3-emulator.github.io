@@ -40,7 +40,7 @@ impl Lexer {
             }
         }
 
-        // TODO: Rid yourself of this HORRID thing D8< (the clone)
+        // TODO: Rid yourself of this HORRID thing D8< (the clone) (just don't return it and get it from the outside?)
         return self.token_stream.clone();
     }
 
@@ -116,6 +116,30 @@ impl Lexer {
     }
 
     // pub fn parse_string(&self, line: &str) -> String {
+    //     let mut i = 0;
+    //     let mut in_string = false;
+    //     let mut str_buffer = "";
+
+    //     for c in line.chars() {
+    //         if !in_string {
+    //             match c {
+    //                 '\"' => {
+    //                     in_string = true;
+    //                     continue;
+    //                 },
+    //                 _ => continue,
+    //             }
+    //         }
+
+
+
+    //         i += 1;
+    //     }
+
+    //     return str_buffer.to_string();
+    // }
+
+    // pub fn parse_escape(&self, character: char) -> char {
 
     // }
 }
