@@ -1,5 +1,3 @@
-use std::fmt::format;
-
 use super::asm_ins::*;
 use super::directive::*;
 use super::syntax::SyntaxChecker;
@@ -110,15 +108,30 @@ impl Lexer {
             },
             'x' | 'X' => {
                 let base = 16;
-                return i16::from_str_radix(&word[1..], base)
-                    .expect(&format!("Lexer::parse_immediate_value: The given number on line {} is not valid", self.curr_line_num));
+                return u16::from_str_radix(&word[1..], base)
+                    .expect(&format!("Lexer::parse_immediate_value: The given number on line {} is not valid", self.curr_line_num)) as i16;
             },
             _ => unreachable!(),
         }
     }
+
+    // pub fn parse_string(&self, line: &str) -> String {
+
+    // }
 }
 
 #[cfg(test)]
 mod tests {
-    // use super::Lexer;
+    use super::*;
+
+    #[test]
+    fn test_hex_overflow() {
+        let file = String::from("NOT_TOO_BIG  .FILL   xFFF6\nEVEN_THIS .FILL xFFFF");
+
+        let mut lexer = Lexer::new();
+        let tokens = lexer.run(file.split_ascii_whitespace().collect());
+
+        assert!(tokens[2] == Token::Number(65526_u16 as i16));
+        assert!(tokens[5] == Token::Number(65535_u16 as i16));
+    }
 }

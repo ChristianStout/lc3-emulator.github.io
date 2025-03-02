@@ -541,35 +541,35 @@ mod test {
         assert!(reg.pc == 2190);
     }
 
-    #[test]
-    fn test_jsr() {
-        unimplemented!();
-    }
+    // #[test]
+    // fn test_jsr() {
+    //     unimplemented!();
+    // }
 
-    #[test]
-    fn test_jsrr() {
-        unimplemented!();
-    }
+    // #[test]
+    // fn test_jsrr() {
+    //     unimplemented!();
+    // }
 
-    #[test]
-    fn test_ld() {
-        unimplemented!();
-    }
+    // #[test]
+    // fn test_ld() {
+    //     unimplemented!();
+    // }
 
-    #[test]
-    fn test_ldi() {
-        unimplemented!();
-    }
+    // #[test]
+    // fn test_ldi() {
+    //     unimplemented!();
+    // }
 
-    #[test]
-    fn test_ldr() {
-        unimplemented!();
-    }
+    // #[test]
+    // fn test_ldr() {
+    //     unimplemented!();
+    // }
 
-    #[test]
-    fn test_lea() {
-        unimplemented!();
-    }
+    // #[test]
+    // fn test_lea() {
+    //     unimplemented!();
+    // }
 
     #[test]
     fn test_not() {
@@ -622,23 +622,23 @@ mod test {
         assert!(reg.p == false);
     }
 
-    #[test]
-    fn test_rti() {
-        // unimplemented!(); going to implement in later version.
-    }
+    // #[test]
+    // fn test_rti() {
+    //     // unimplemented!(); going to implement in later version.
+    // }
 
-    #[test]
-    fn test_st() {
-        unimplemented!();
-    }
+    // #[test]
+    // fn test_st() {
+    //     unimplemented!();
+    // }
 
-    #[test]
-    fn test_sti() {
-        unimplemented!();
-    }
+    // #[test]
+    // fn test_sti() {
+    //     unimplemented!();
+    // }
 
-    #[test]
-    fn test_str() {
-        unimplemented!();
-    }
+    // #[test]
+    // fn test_str() {
+    //     unimplemented!();
+    // }
 }
