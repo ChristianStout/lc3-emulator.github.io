@@ -1,3 +1,5 @@
+use crate::asm::token;
+
 use super::asm_ins::*;
 use super::directive::*;
 use super::syntax::SyntaxChecker;
@@ -28,27 +30,10 @@ impl Lexer {
     }
 
     pub fn run(&mut self, input_file: String) -> Vec<Token> {
-        // for line in input_file {
-        //     self.curr_line_num += 1;
-
-        //     if self.syntax_checker.is_ins(line) || self.syntax_checker.is_dir(line) {
-        //         self.parse_line(line);
-        //         continue;
-        //     }
-        //     if !self.syntax_checker.is_ignore(line) {
-        //         self.errors.push(AsmError::new(
-        //             line,
-        //             self.curr_line_num,
-        //             ErrorType::SyntaxError,
-        //             "neither a valid instruction nor a valid directive line was given. perhaps there are too many operands?"
-        //         ))
-        //     }
-        // }
         self.file_as_chars = input_file.chars().collect();
         self.curr_file = input_file;
 
         let mut word_buffer: Vec<char> = vec![];
-        let mut in_comment = false;
         let mut c: char;
             
 
@@ -58,18 +43,15 @@ impl Lexer {
             if c == '\"' {
                 let string = self.parse_string();
                 self.token_stream.push(Token::String(string));
+                continue;
             }
 
             if c == '\n' {
                 self.curr_line_num += 1;
             }
 
-            if in_comment && c != '\n' {
-                continue;
-            }
-
-            if in_comment && c == '\n' {
-                in_comment = false;
+            if c == ';' {
+                self.skip_comment();
                 continue;
             }
 
@@ -79,12 +61,12 @@ impl Lexer {
                 continue;
             }
 
-            if c == ';' {
-                self.skip_comment();
+            if c.is_whitespace() && word_buffer.len() == 0 {
                 continue;
             }
 
             word_buffer.push(c);
+            println!("word_buffer: {}", word_buffer.iter().collect::<String>());
         }
 
         return self.token_stream.clone(); // TODO: Remove clone()
@@ -110,34 +92,43 @@ impl Lexer {
 
     pub fn parse_word(&mut self, word: String) {
         // parse hierarchy
-        if self.syntax_checker.is_ignore(&word) {
+        let upper = word.to_uppercase();
+
+        println!("{}, len = {}", upper, upper.len());
+
+        if self.syntax_checker.is_ignore(&upper) {
             return;
         }
-        if self.syntax_checker.is_instruction_name(&word) {
-            self.token_stream.push(Token::Instruction(OpcodeIns::from(&word)));
+        else if self.syntax_checker.is_instruction_name(&word) {
+            self.token_stream.push(Token::Instruction(OpcodeIns::from(&upper)));
             return;
         }
-        if self.syntax_checker.is_directive_name(&word) {
-            self.token_stream.push(Token::Directive(Directive::from(&word)));
+        else if self.syntax_checker.is_directive_name(&upper) {
+            self.token_stream.push(Token::Directive(Directive::from(&upper)));
             return;
         }
-        if self.syntax_checker.is_valid_register(&word) {
-            self.token_stream.push(Token::Register(self.parse_register(&word)));
+        else if self.syntax_checker.is_valid_register(&upper) {
+            self.token_stream.push(Token::Register(self.parse_register(&upper)));
             return;
         }
-        if self.syntax_checker.is_valid_immediate_value(&word) {
-            self.token_stream.push(Token::Number(self.parse_immediate_value(&word)));
+        else if self.syntax_checker.is_valid_immediate_value(&upper) {
+            self.token_stream.push(Token::Number(self.parse_immediate_value(&upper)));
             return;
         }
-        if self.syntax_checker.is_valid_label(&word) {
+        else if self.syntax_checker.is_valid_label(&word) {
             self.token_stream.push(Token::Label(word.to_string()));
             return;
         }
-        // if self.syntax_checker.is_string_start(&word) {
-        //     // let string = self.parse_string(line);
-        //     self.token_stream.push(Token::String(string));
-        //     return;
-        // }
+        else {
+            self.token_stream.push(Token::INVALID(word));
+            let line = self.get_current_line();
+            self.errors.push(AsmError::new(
+                &line,
+                self.curr_line_num,
+                ErrorType::SyntaxError,
+                "a token could not be categorized"
+            ))
+        }
     }
 
     pub fn parse_register(&self, word: &str) -> u16 {
@@ -173,7 +164,6 @@ impl Lexer {
     pub fn parse_string(&mut self) -> String {
         let mut str_buffer: Vec<char> = vec![];
         let mut is_escape = false;
-        // let mut from = 0;
         let mut c: char;
 
         while true {

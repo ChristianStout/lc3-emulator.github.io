@@ -18,9 +18,9 @@ pub struct SyntaxChecker {
 #[allow(dead_code)]
 impl SyntaxChecker {
     pub fn new() -> SyntaxChecker {
-        let label = Regex::new(r#"^[A-Za-z_][A-Za-z0-9_](,)?*$"#).unwrap();
-        let reg = Regex::new(r#"(R|r)[0-7](,)?"#).unwrap();
-        let imm = Regex::new(r##"(#[0-9]+|x[0-9A-F]+)(,)?"##).unwrap();
+        let label = Regex::new(r#"^[A-Za-z_][A-Za-z0-9_]*$"#).unwrap();
+        let reg = Regex::new(r#"(R|r)[0-7]"#).unwrap();
+        let imm = Regex::new(r##"(#[0-9]+|x[0-9A-F]+)"##).unwrap();
         let string_whole = Regex::new(r#"^["].*["]$"#).unwrap();
         let string_start = Regex::new(r#"^["].*"#).unwrap();
         let string_end = Regex::new(r#".*["]$"#).unwrap();

@@ -7,7 +7,7 @@ pub enum ErrorType {
 impl ErrorType {
     pub fn as_str(&self) -> &str {
         match self {
-            Self::SyntaxError => return "SynataxError",
+            Self::SyntaxError => return "SyntaxError",
             Self::OperandError => return "OperandError",
         }
     }

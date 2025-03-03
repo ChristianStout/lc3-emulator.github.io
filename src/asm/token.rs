@@ -9,4 +9,5 @@ pub enum Token {
     Number(i16),
     String(String),
     Register(u16),
+    INVALID(String),
 }
