@@ -1,4 +1,3 @@
-use super::asm::Asm;
 use super::asm_ins::*;
 use super::directive::*;
 use super::syntax::SyntaxChecker;
@@ -9,7 +8,10 @@ pub struct Lexer {
     pub token_stream: Vec<Token>,
     pub errors: Vec<AsmError>,
     syntax_checker: SyntaxChecker,
+    curr_file: String,
+    file_as_chars: Vec<char>,
     curr_line_num: i32,
+    position: usize,
 }
 
 impl Lexer {
@@ -18,70 +20,124 @@ impl Lexer {
             token_stream: vec![],
             errors: vec![],
             syntax_checker: SyntaxChecker::new(),
+            curr_file: String::new(),
+            file_as_chars: vec![],
             curr_line_num: 0,
+            position: 0,
         }
     }
 
-    pub fn run(&mut self, input_file: Vec<&str>) -> Vec<Token> {
-        for line in input_file {
-            self.curr_line_num += 1;
-            // println!("LINE {}: {line}", self.curr_line_num);
+    pub fn run(&mut self, input_file: String) -> Vec<Token> {
+        // for line in input_file {
+        //     self.curr_line_num += 1;
 
-            if self.syntax_checker.is_ins(line) || self.syntax_checker.is_dir(line) {
-                self.parse_line(line);
-                continue;
-            }
-            if !self.syntax_checker.is_ignore(line) {
-                self.errors.push(AsmError::new(
-                    line,
-                    self.curr_line_num,
-                    ErrorType::SyntaxError,
-                    "neither a valid instruction nor a valid directive line was given. perhaps there are too many operands?"
-                ))
-            }
-        }
+        //     if self.syntax_checker.is_ins(line) || self.syntax_checker.is_dir(line) {
+        //         self.parse_line(line);
+        //         continue;
+        //     }
+        //     if !self.syntax_checker.is_ignore(line) {
+        //         self.errors.push(AsmError::new(
+        //             line,
+        //             self.curr_line_num,
+        //             ErrorType::SyntaxError,
+        //             "neither a valid instruction nor a valid directive line was given. perhaps there are too many operands?"
+        //         ))
+        //     }
+        // }
+        self.file_as_chars = input_file.chars().collect();
+        self.curr_file = input_file;
 
-        // TODO: Rid yourself of this HORRID thing D8< (the clone) (just don't return it and get it from the outside?)
-        return self.token_stream.clone();
-    }
+        let mut word_buffer: Vec<char> = vec![];
+        let mut in_comment = false;
+        let mut c: char;
+            
 
-    pub fn parse_line(&mut self, line: &str) {
-        let split_line: Vec<&str> = line.split_whitespace().collect();
+        while self.position < self.file_as_chars.len() {
+            c = self.next_char(); // iterates self.position
 
-        for word in split_line {
-
-            // parse hierarchy
-
-            if self.syntax_checker.is_ignore(word) {
-                // println!("Ignored word: {word}");
-                return;
-            }
-            if self.syntax_checker.is_instruction_name(word) {
-                self.token_stream.push(Token::Instruction(OpcodeIns::from(word)));
-                continue;
-            }
-            if self.syntax_checker.is_directive_name(word) {
-                self.token_stream.push(Token::Directive(Directive::from(word)));
-                continue;
-            }
-            if self.syntax_checker.is_valid_register(word) {
-                self.token_stream.push(Token::Register(self.parse_register(word)));
-                continue;
-            }
-            if self.syntax_checker.is_valid_immediate_value(word) {
-                self.token_stream.push(Token::Number(self.parse_immediate_value(word)));
-                continue;
-            }
-            if self.syntax_checker.is_valid_label(word) {
-                self.token_stream.push(Token::Label(word.to_string()));
-                continue;
-            }
-             if self.syntax_checker.is_string_start(word) {
-                let string = self.parse_string(line);
+            if c == '\"' {
+                let string = self.parse_string();
                 self.token_stream.push(Token::String(string));
+            }
+
+            if c == '\n' {
+                self.curr_line_num += 1;
+            }
+
+            if in_comment && c != '\n' {
                 continue;
-             }
+            }
+
+            if in_comment && c == '\n' {
+                in_comment = false;
+                continue;
+            }
+
+            if (c.is_whitespace() || c == ';') && word_buffer.len() > 0 {
+                self.parse_word(word_buffer.iter().collect());
+                word_buffer.clear();
+                continue;
+            }
+
+            if c == ';' {
+                self.skip_comment();
+                continue;
+            }
+
+            word_buffer.push(c);
         }
+
+        return self.token_stream.clone(); // TODO: Remove clone()
+    }
+
+    fn next_char(&mut self) -> char {
+        let c: char = self.file_as_chars[self.position];
+        self.position += 1;
+        return c;
+    }
+
+    fn get_current_line(&mut self) -> String {
+        let current_line_number = self.curr_line_num.clone() as usize;
+        let split_file: Vec<&str> = self.curr_file.split_whitespace().collect();
+        return String::from(split_file[current_line_number]);
+    }
+
+    fn skip_comment(&mut self) {
+        while self.next_char() != '\n' {
+            // ...
+        }
+    }
+
+    pub fn parse_word(&mut self, word: String) {
+        // parse hierarchy
+        if self.syntax_checker.is_ignore(&word) {
+            return;
+        }
+        if self.syntax_checker.is_instruction_name(&word) {
+            self.token_stream.push(Token::Instruction(OpcodeIns::from(&word)));
+            return;
+        }
+        if self.syntax_checker.is_directive_name(&word) {
+            self.token_stream.push(Token::Directive(Directive::from(&word)));
+            return;
+        }
+        if self.syntax_checker.is_valid_register(&word) {
+            self.token_stream.push(Token::Register(self.parse_register(&word)));
+            return;
+        }
+        if self.syntax_checker.is_valid_immediate_value(&word) {
+            self.token_stream.push(Token::Number(self.parse_immediate_value(&word)));
+            return;
+        }
+        if self.syntax_checker.is_valid_label(&word) {
+            self.token_stream.push(Token::Label(word.to_string()));
+            return;
+        }
+        // if self.syntax_checker.is_string_start(&word) {
+        //     // let string = self.parse_string(line);
+        //     self.token_stream.push(Token::String(string));
+        //     return;
+        // }
     }
 
     pub fn parse_register(&self, word: &str) -> u16 {
@@ -113,32 +169,23 @@ impl Lexer {
         }
     }
 
-    pub fn parse_string(&mut self, line: &str) -> String {
-        let mut in_string = false;
+    #[allow(while_true)]
+    pub fn parse_string(&mut self) -> String {
         let mut str_buffer: Vec<char> = vec![];
         let mut is_escape = false;
-        let mut from = 0;
+        // let mut from = 0;
+        let mut c: char;
 
-        for (i, c) in line.chars().enumerate() {
-            if !in_string {
-                match c {
-                    '\"' => {
-                        in_string = true;
-                        from = i;
-                        continue;
-                    },
-                    _ => continue,
-                }
-            }
+        while true {
+            c = self.next_char();
 
             if is_escape {
-                str_buffer.push(self.parse_escape(line, c));
+                str_buffer.push(self.parse_escape(c));
                 is_escape = false;
                 continue;
             }
 
-            if in_string && c == '\n' {
-                in_string = false;
+            if c == '\"' {
                 break;
             }
             
@@ -147,24 +194,24 @@ impl Lexer {
                 continue;
             }
 
-            str_buffer.push(c);
-        }
+            if c == '\n' {
+                let curr_line = self.get_current_line();
+                self.errors.push(AsmError::new(
+                    &curr_line,
+                    self.curr_line_num,
+                    ErrorType::SyntaxError,
+                    "the given string was not terminated",
+                ));
+                break;
+            }
 
-        if in_string {
-            let mut err = AsmError::new(
-                line,
-                self.curr_line_num,
-                ErrorType::SyntaxError,
-                "the given string was not terminated",
-            );
-            err.set_from_to(from as i32, (line.len() - from) as i32);
-            self.errors.push(err);
+            str_buffer.push(c);
         }
 
         return str_buffer.iter().collect();
     }
 
-     pub fn parse_escape(&mut self, line: &str, character: char) -> char {
+     pub fn parse_escape(&mut self, character: char) -> char {
         println!("Reached here");
         match character {
             '\\' | '\'' |'\"' => return character,
@@ -173,9 +220,11 @@ impl Lexer {
             't' => return '\t',
             '0' => return '\0',
             _ => {
+                let line = self.get_current_line();
+                let line_number = self.curr_line_num;
                 self.errors.push(AsmError::new(
-                    line,
-                    self.curr_line_num,
+                    &line,
+                    line_number,
                     ErrorType::SyntaxError,
                     &format!("the given escape character `\\{}` does not exist.", character)
                 ));
@@ -198,5 +247,18 @@ mod tests {
 
         assert!(tokens[2] == Token::Number(65526_u16 as i16));
         assert!(tokens[5] == Token::Number(65535_u16 as i16));
+    }
+
+    #[test]
+    fn test_strings() {
+        let file = String::from(r#".STRINGZ "Hello, World!"  "#);
+
+        let mut lexer = Lexer::new();
+        let tokens = lexer.run(file.split_ascii_whitespace().collect());
+
+        println!("TOKENS: {:?}", tokens);
+
+        assert!(tokens == vec![Token::Directive(Directive::STRINGZ), Token::String("Hello, World!".to_string())]);
+        // assert!(tokens[5] == Token::Number(65535_u16 as i16));
     }
 }

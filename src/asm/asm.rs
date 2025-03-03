@@ -17,8 +17,8 @@ impl Asm {
         // Hand split file into lexer, turn into Vec<Token>
         // Assemble Vec<Token> into binary Vec<u16>
 
-        let split_file: Vec<&str> = input_file.split('\n').collect();
-        let tokens = self.lexer.run(split_file);
+        // let split_file: Vec<&str> = input_file.split('\n').collect();
+        let tokens = self.lexer.run(input_file);
         
         if self.lexer.errors.len() > 0 {
             for error in self.lexer.errors.iter() {

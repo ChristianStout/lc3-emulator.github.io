@@ -10,25 +10,27 @@ pub struct SyntaxChecker {
     register: Regex,
     label: Regex,
     imm: Regex,
-    string: Regex,
+    string_whole: Regex,
     string_start: Regex,
+    string_end: Regex,
 }
 
 #[allow(dead_code)]
 impl SyntaxChecker {
     pub fn new() -> SyntaxChecker {
-        let label = Regex::new(r#"[A-Za-z_][A-Za-z0-9_](,)?*$"#).unwrap();
+        let label = Regex::new(r#"^[A-Za-z_][A-Za-z0-9_](,)?*$"#).unwrap();
         let reg = Regex::new(r#"(R|r)[0-7](,)?"#).unwrap();
         let imm = Regex::new(r##"(#[0-9]+|x[0-9A-F]+)(,)?"##).unwrap();
-        let string = Regex::new(r#"["].*["]"#).unwrap();
-        let string_start = Regex::new(r#"["].*"#).unwrap();
+        let string_whole = Regex::new(r#"^["].*["]$"#).unwrap();
+        let string_start = Regex::new(r#"^["].*"#).unwrap();
+        let string_end = Regex::new(r#".*["]$"#).unwrap();
 
         let ins_line_regex: Regex = Regex::new(r#"([A-Za-z_][A-Za-z0-9_]*\s)?(\s)*[A-Z]+(\s)*(\s([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|R[0-7]|PC)(,(\s)+([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|R[0-7]|PC)(,(\s)+([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|R[0-7]|PC))?)?)?(\s)*(;.*)?"#).unwrap();
         let dir_line_regex: Regex = Regex::new(r#"([A-Za-z][A-Za-z0-9]*\s)?(\s)*[.][A-Za-z0-9]*(\s)+(x[0-9]+|["].+["]|)?(\s)?(;.*)?[\n|\r|\n\r]"#).unwrap();
         let ignore_regex: Regex = Regex::new(r#"^(\s)*(;.*)?$"#).unwrap();
 
         let ins_name = Regex::new(
-            "(BR[N]?[Z]?[P]?)|ADD|AND|JMP|JSR|JSRR|LD|LDI|LDR|LEA|NOT|RET|RTI|ST|STI|STR|GETC|OUT|PUTS|IN|HALT"
+            "((BR[N]?[Z]?[P]?)|ADD|AND|JMP|JSR|JSRR|LD|LDI|LDR|LEA|NOT|RET|RTI|ST|STI|STR|GETC|OUT|PUTS|IN|HALT)$"
         ).unwrap();
         let dir_name = Regex::new("[.](ORIG|FILL|BLKW|STRINGZ|END)").unwrap();
 
@@ -41,8 +43,9 @@ impl SyntaxChecker {
             register: reg,
             label: label,
             imm: imm,
-            string: string,
+            string_whole: string_whole,
             string_start: string_start,
+            string_end: string_end,
         }
     }
 
@@ -78,11 +81,15 @@ impl SyntaxChecker {
         return self.imm.is_match(word);
     }
 
-    pub fn is_valid_string(&self, word: &str) -> bool {
-        return self.string.is_match(word);
+    pub fn is_valid_string_whole(&self, word: &str) -> bool {
+        return self.string_whole.is_match(word);
     }
 
     pub fn is_string_start(&self, word: &str) -> bool {
         return self.string_start.is_match(word);
+    }
+
+    pub fn is_string_end(&self, word: &str) -> bool {
+        return self.string_end.is_match(word);
     }
 }
