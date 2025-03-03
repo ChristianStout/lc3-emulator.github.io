@@ -1,3 +1,4 @@
+use super::asm::Asm;
 use super::asm_ins::*;
 use super::directive::*;
 use super::syntax::SyntaxChecker;
@@ -75,14 +76,11 @@ impl Lexer {
                 self.token_stream.push(Token::Label(word.to_string()));
                 continue;
             }
-
-            // TODO: Parse Strings. this will require the ability to extract the
-            // string from the original line
-
-            // if self.syntax_checker.is_valid_string(word) {
-            //     self.token_stream.push(Token::Number(self.parse_string(word)));
-            //     continue;
-            // }
+             if self.syntax_checker.is_string_start(word) {
+                let string = self.parse_string(line);
+                self.token_stream.push(Token::String(string));
+                continue;
+             }
         }
     }
 
@@ -115,33 +113,76 @@ impl Lexer {
         }
     }
 
-    // pub fn parse_string(&self, line: &str) -> String {
-    //     let mut i = 0;
-    //     let mut in_string = false;
-    //     let mut str_buffer = "";
+    pub fn parse_string(&mut self, line: &str) -> String {
+        let mut in_string = false;
+        let mut str_buffer: Vec<char> = vec![];
+        let mut is_escape = false;
+        let mut from = 0;
 
-    //     for c in line.chars() {
-    //         if !in_string {
-    //             match c {
-    //                 '\"' => {
-    //                     in_string = true;
-    //                     continue;
-    //                 },
-    //                 _ => continue,
-    //             }
-    //         }
+        for (i, c) in line.chars().enumerate() {
+            if !in_string {
+                match c {
+                    '\"' => {
+                        in_string = true;
+                        from = i;
+                        continue;
+                    },
+                    _ => continue,
+                }
+            }
 
+            if is_escape {
+                str_buffer.push(self.parse_escape(line, c));
+                is_escape = false;
+                continue;
+            }
 
+            if in_string && c == '\n' {
+                in_string = false;
+                break;
+            }
+            
+            if c == '\\' {
+                is_escape = true;
+                continue;
+            }
 
-    //         i += 1;
-    //     }
+            str_buffer.push(c);
+        }
 
-    //     return str_buffer.to_string();
-    // }
+        if in_string {
+            let mut err = AsmError::new(
+                line,
+                self.curr_line_num,
+                ErrorType::SyntaxError,
+                "the given string was not terminated",
+            );
+            err.set_from_to(from as i32, (line.len() - from) as i32);
+            self.errors.push(err);
+        }
 
-    // pub fn parse_escape(&self, character: char) -> char {
+        return str_buffer.iter().collect();
+    }
 
-    // }
+     pub fn parse_escape(&mut self, line: &str, character: char) -> char {
+        println!("Reached here");
+        match character {
+            '\\' | '\'' |'\"' => return character,
+            'n' => return '\n',
+            'r' => return '\r',
+            't' => return '\t',
+            '0' => return '\0',
+            _ => {
+                self.errors.push(AsmError::new(
+                    line,
+                    self.curr_line_num,
+                    ErrorType::SyntaxError,
+                    &format!("the given escape character `\\{}` does not exist.", character)
+                ));
+            },
+        }
+        '\0'
+     }
 }
 
 #[cfg(test)]

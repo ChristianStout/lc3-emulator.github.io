@@ -32,6 +32,10 @@ impl AsmError {
         }
     }
 
+    pub fn set_from_to(&mut self, from: i32, to: i32) {
+        self.from_to = Some((from, to));
+    }
+
     pub fn print(&self) {
         println!("{}", self.generate_msg())
     }

@@ -7,4 +7,6 @@ JMP R0 ; I'm making a comment
 
 NOT R1, R2
 
+.STRINGZ "hi"
+
 .END
