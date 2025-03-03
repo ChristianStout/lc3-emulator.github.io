@@ -55,7 +55,7 @@ impl Lexer {
                 continue;
             }
 
-            if (c.is_whitespace() || c == ';') && word_buffer.len() > 0 {
+            if (c.is_whitespace() || c == ';' || c == ',') && word_buffer.len() > 0 {
                 self.parse_word(word_buffer.iter().collect());
                 word_buffer.clear();
                 continue;
