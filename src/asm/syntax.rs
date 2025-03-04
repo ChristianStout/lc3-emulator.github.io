@@ -19,7 +19,7 @@ pub struct SyntaxChecker {
 impl SyntaxChecker {
     pub fn new() -> SyntaxChecker {
         let label = Regex::new(r#"^[A-Za-z_][A-Za-z0-9_]*$"#).unwrap();
-        let reg = Regex::new(r#"(R|r)[0-7]"#).unwrap();
+        let reg = Regex::new(r#"^(R|r)[0-7]$"#).unwrap();
         let imm = Regex::new(r##"(#[0-9]+|x[0-9A-F]+)"##).unwrap();
         let string_whole = Regex::new(r#"^["].*["]$"#).unwrap();
         let string_start = Regex::new(r#"^["].*"#).unwrap();
@@ -112,5 +112,22 @@ mod tests {
         assert!(s.is_instruction_name("BRNZP"));
 
         assert!(s.is_instruction_name(&"brnzp".to_ascii_uppercase()));
+    }
+
+    #[test]
+    fn test_register_regex() {
+        let s = SyntaxChecker::new();
+
+        assert!(s.is_valid_register("R0"));
+        assert!(s.is_valid_register("R1"));
+        assert!(s.is_valid_register("R2"));
+        assert!(s.is_valid_register("R3"));
+        assert!(s.is_valid_register("R4"));
+        assert!(s.is_valid_register("R5"));
+        assert!(s.is_valid_register("R6"));
+        assert!(s.is_valid_register("R7"));
+
+        assert!(!s.is_valid_register("R8"));
+        assert!(!s.is_valid_register("RR7"));
     }
 }

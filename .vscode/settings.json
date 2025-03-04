@@ -1,6 +1,13 @@
 {
     "cSpell.words": [
+        "BLKW",
+        "BRNP",
+        "BRNZ",
+        "BRNZP",
+        "BRZP",
+        "JSRR",
         "pcoffset",
+        "STRINGZ",
         "trapvec"
     ]
 }

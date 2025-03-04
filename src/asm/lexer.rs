@@ -1,5 +1,3 @@
-use crate::asm::token;
-
 use super::asm_ins::*;
 use super::directive::*;
 use super::syntax::SyntaxChecker;
@@ -410,6 +408,117 @@ mod tests {
         assert_ne!(
             lexer.run(String::from(" JSRRR ")),
             vec![Token::Instruction(OpcodeIns::Jsrr)]
+        );
+    }
+
+    #[test]
+    fn test_registers() {
+        let mut lexer = Lexer::new();
+
+        assert_eq!(
+            lexer.run(String::from(" R0 ")),
+            vec![Token::Register(0)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" R1 ")),
+            vec![Token::Register(1)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" R2 ")),
+            vec![Token::Register(2)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" R3 ")),
+            vec![Token::Register(3)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" R4 ")),
+            vec![Token::Register(4)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" R5 ")),
+            vec![Token::Register(5)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" R6 ")),
+            vec![Token::Register(6)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" R7 ")),
+            vec![Token::Register(7)]
+        );
+
+
+        assert_ne!(
+            lexer.run(String::from(" R8 ")),
+            vec![Token::Register(8)]
+        );
+        assert_ne!(
+            lexer.run(String::from(" RR1 ")),
+            vec![Token::Register(1)]
+        );
+        assert_ne!(
+            lexer.run(String::from(" GO_TO_R1 ")),
+            vec![Token::Register(1)]
+        );
+        assert_ne!(
+            lexer.run(String::from(" R1_FOREVER_IN_MY_HEART ")),
+            vec![Token::Register(1)]
+        );
+        assert_ne!(
+            lexer.run(String::from(" okay_R1_your_right ")),
+            vec![Token::Register(1)]
+        );
+    }
+
+    #[test]
+    fn test_case_sensitivity() {
+        let mut lexer = Lexer::new();
+
+        assert_eq!(
+            lexer.run(String::from(" this ")),
+            vec![Token::Label("this".to_string())]
+        );
+        assert_eq!(
+            lexer.run(String::from(" THIS ")),
+            vec![Token::Label("THIS".to_string())]
+        );
+        assert_ne!(
+            lexer.run(String::from(" this ")),
+            vec![Token::Label("THIS".to_string())]
+        );
+
+
+        assert_eq!(
+            lexer.run(String::from(" halt ")),
+            lexer.run(String::from(" HALT "))
+        );
+        assert_eq!(
+            lexer.run(String::from(" and ")),
+            lexer.run(String::from(" AND "))
+        );
+        assert_eq!(
+            lexer.run(String::from(" jsrR ")),
+            lexer.run(String::from(" JSRr "))
+        );
+        assert_eq!(
+            lexer.run(String::from(" LEA ")),
+            lexer.run(String::from(" lea "))
+        );
+        assert_eq!(
+            lexer.run(String::from(" GeTc ")),
+            lexer.run(String::from(" gEtC "))
+        );
+
+
+        assert_ne!(
+            lexer.run(String::from(r#" "string" "#)),
+            lexer.run(String::from(r#" "STRING" "#))
+        );
+
+        assert_eq!(
+            lexer.run(String::from(" r1 ")),
+            lexer.run(String::from(" R1 "))
         );
     }
 }
