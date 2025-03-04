@@ -93,3 +93,24 @@ impl SyntaxChecker {
         return self.string_end.is_match(word);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_br_nzp_regex() {
+        let s = SyntaxChecker::new();
+
+        assert!(s.is_instruction_name("BR"));
+        assert!(s.is_instruction_name("BRN"));
+        assert!(s.is_instruction_name("BRZ"));
+        assert!(s.is_instruction_name("BRP"));
+        assert!(s.is_instruction_name("BRNZ"));
+        assert!(s.is_instruction_name("BRNP"));
+        assert!(s.is_instruction_name("BRZP"));
+        assert!(s.is_instruction_name("BRNZP"));
+
+        assert!(s.is_instruction_name(&"brnzp".to_ascii_uppercase()));
+    }
+}
