@@ -273,13 +273,7 @@ mod tests {
 
     #[test]
     fn test_br_nzp() {
-
-        // let file = String::from(r#"BRnzp  something  "#);
-
         let mut lexer = Lexer::new();
-        // let tokens = lexer.run(file);
-
-        // assert!(tokens == vec![Token::Instruction(OpcodeIns::Br(true, true, true)), Token::Label(String::from("something"))]);
 
         assert_eq!(
             lexer.run(String::from(" BR ")),
@@ -288,6 +282,134 @@ mod tests {
         assert_eq!(
             lexer.run(String::from(" BRn ")),
             vec![Token::Instruction(OpcodeIns::Br(true, false, false))]
+        );
+        assert_eq!(
+            lexer.run(String::from(" BRz ")),
+            vec![Token::Instruction(OpcodeIns::Br(false, true, false))]
+        );
+        assert_eq!(
+            lexer.run(String::from(" BRp ")),
+            vec![Token::Instruction(OpcodeIns::Br(false, false, true))]
+        );
+        assert_eq!(
+            lexer.run(String::from(" BRnz ")),
+            vec![Token::Instruction(OpcodeIns::Br(true, true, false))]
+        );
+        assert_eq!(
+            lexer.run(String::from(" BRnp ")),
+            vec![Token::Instruction(OpcodeIns::Br(true, false, true))]
+        );
+        assert_eq!(
+            lexer.run(String::from(" BRzp ")),
+            vec![Token::Instruction(OpcodeIns::Br(false, true, true))]
+        );
+        assert_eq!(
+            lexer.run(String::from(" BRnzp ")),
+            vec![Token::Instruction(OpcodeIns::Br(true, true, true))]
+        );
+    }
+
+    #[test]
+    fn test_intructions() {
+        let mut lexer = Lexer::new();
+
+        assert_eq!(
+            lexer.run(String::from(" ADD ")),
+            vec![Token::Instruction(OpcodeIns::Add)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" AND ")),
+            vec![Token::Instruction(OpcodeIns::And)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" JMP ")),
+            vec![Token::Instruction(OpcodeIns::Jmp)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" JSR ")),
+            vec![Token::Instruction(OpcodeIns::Jsr)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" Jsrr ")),
+            vec![Token::Instruction(OpcodeIns::Jsrr)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" LD ")),
+            vec![Token::Instruction(OpcodeIns::Ld)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" LDI ")),
+            vec![Token::Instruction(OpcodeIns::Ldi)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" LDR ")),
+            vec![Token::Instruction(OpcodeIns::Ldr)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" LEA ")),
+            vec![Token::Instruction(OpcodeIns::Lea)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" NOT ")),
+            vec![Token::Instruction(OpcodeIns::Not)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" RET ")),
+            vec![Token::Instruction(OpcodeIns::Ret)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" RTI ")),
+            vec![Token::Instruction(OpcodeIns::Rti)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" ST ")),
+            vec![Token::Instruction(OpcodeIns::St)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" STI ")),
+            vec![Token::Instruction(OpcodeIns::Sti)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" STR ")),
+            vec![Token::Instruction(OpcodeIns::Str)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" GETC ")),
+            vec![Token::Instruction(OpcodeIns::Trap(20))]
+        );
+        assert_eq!(
+            lexer.run(String::from(" OUT ")),
+            vec![Token::Instruction(OpcodeIns::Trap(21))]
+        );
+        assert_eq!(
+            lexer.run(String::from(" PUTS ")),
+            vec![Token::Instruction(OpcodeIns::Trap(22))]
+        );
+        assert_eq!(
+            lexer.run(String::from(" IN ")),
+            vec![Token::Instruction(OpcodeIns::Trap(23))]
+        );
+        assert_eq!(
+            lexer.run(String::from(" HALT ")),
+            vec![Token::Instruction(OpcodeIns::Trap(25))]
+        );
+
+
+        assert_ne!(
+            lexer.run(String::from(" HALTS ")),
+            vec![Token::Instruction(OpcodeIns::Trap(25))]
+        );
+        assert_ne!(
+            lexer.run(String::from(" ADDI ")),
+            vec![Token::Instruction(OpcodeIns::Add)]
+        );
+        assert_ne!(
+            lexer.run(String::from(" ANDY ")),
+            vec![Token::Instruction(OpcodeIns::And)]
+        );
+        assert_ne!(
+            lexer.run(String::from(" JSRRR ")),
+            vec![Token::Instruction(OpcodeIns::Jsrr)]
         );
     }
 }
