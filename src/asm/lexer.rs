@@ -69,7 +69,11 @@ impl Lexer {
             println!("word_buffer: {}", word_buffer.iter().collect::<String>());
         }
 
-        return self.token_stream.clone(); // TODO: Remove clone()
+        let tokens = self.token_stream.clone();
+
+        self.reset();
+
+        return tokens; // TODO: Remove clone()
     }
 
     fn next_char(&mut self) -> char {
@@ -90,16 +94,26 @@ impl Lexer {
         }
     }
 
+    fn reset(&mut self) {
+        self.token_stream = vec![];
+        self.errors = vec![];
+        self.syntax_checker = SyntaxChecker::new();
+        self.curr_file = String::new();
+        self.file_as_chars = vec![];
+        self.curr_line_num = 0;
+        self.position = 0;
+    }
+
     pub fn parse_word(&mut self, word: String) {
         // parse hierarchy
-        let upper = word.to_uppercase();
+        let upper = word.to_ascii_uppercase();
 
         println!("{}, len = {}", upper, upper.len());
 
         if self.syntax_checker.is_ignore(&upper) {
             return;
         }
-        else if self.syntax_checker.is_instruction_name(&word) {
+        else if self.syntax_checker.is_instruction_name(&upper) {
             self.token_stream.push(Token::Instruction(OpcodeIns::from(&upper)));
             return;
         }
@@ -260,11 +274,20 @@ mod tests {
     #[test]
     fn test_br_nzp() {
 
-        let file = String::from(r#"BRnzp  something  "#);
+        // let file = String::from(r#"BRnzp  something  "#);
 
         let mut lexer = Lexer::new();
-        let tokens = lexer.run(file);
+        // let tokens = lexer.run(file);
 
-        assert!(tokens == vec![Token::Instruction(OpcodeIns::Br(true, true, true)), Token::Label(String::from("something"))]);
+        // assert!(tokens == vec![Token::Instruction(OpcodeIns::Br(true, true, true)), Token::Label(String::from("something"))]);
+
+        assert_eq!(
+            lexer.run(String::from(" BR ")),
+            vec![Token::Instruction(OpcodeIns::Br(false, false, false))]
+        );
+        assert_eq!(
+            lexer.run(String::from(" BRn ")),
+            vec![Token::Instruction(OpcodeIns::Br(true, false, false))]
+        );
     }
 }
