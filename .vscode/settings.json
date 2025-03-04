@@ -5,6 +5,7 @@
         "BRNZ",
         "BRNZP",
         "BRZP",
+        "GETC",
         "JSRR",
         "pcoffset",
         "STRINGZ",

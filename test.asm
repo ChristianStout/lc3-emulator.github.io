@@ -1,3 +1,3 @@
 
-;This_is_something  .STRINGZ         "hi World" ; Comment
-                    BRnzp            ab ;
+NOT_TOO_BIG  .FILL   xFFF6
+EVEN_THIS .FILL xFFFF

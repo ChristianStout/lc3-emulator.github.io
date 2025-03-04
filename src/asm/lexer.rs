@@ -123,8 +123,8 @@ impl Lexer {
             self.token_stream.push(Token::Register(self.parse_register(&upper)));
             return;
         }
-        else if self.syntax_checker.is_valid_immediate_value(&upper) {
-            self.token_stream.push(Token::Number(self.parse_immediate_value(&upper)));
+        else if self.syntax_checker.is_valid_immediate_value(&word) {
+            self.token_stream.push(Token::Number(self.parse_immediate_value(&word)));
             return;
         }
         else if self.syntax_checker.is_valid_label(&word) {
@@ -241,35 +241,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_hex_overflow() {
-        let file = String::from("NOT_TOO_BIG  .FILL   xFFF6\nEVEN_THIS .FILL xFFFF");
-
-        let mut lexer = Lexer::new();
-        let tokens = lexer.run(file);
-
-        assert!(tokens[2] == Token::Number(65526_u16 as i16));
-        assert!(tokens[5] == Token::Number(65535_u16 as i16));
-    }
-
-    #[test]
-    fn test_strings() {
-        let file = String::from(r#".STRINGZ "Hello, World!"  "#);
-
-        let mut lexer = Lexer::new();
-        let tokens = lexer.run(file);
-
-        println!("TOKENS: {:?}", tokens);
-
-        assert!(tokens == vec![Token::Directive(Directive::STRINGZ), Token::String("Hello, World!".to_string())]);
-        // assert!(tokens[5] == Token::Number(65535_u16 as i16));
-    }
-
-    #[test]
-    fn test_commas() {
-
-    }
-
-    #[test]
     fn test_br_nzp() {
         let mut lexer = Lexer::new();
 
@@ -308,7 +279,7 @@ mod tests {
     }
 
     #[test]
-    fn test_intructions() {
+    fn test_instructions() {
         let mut lexer = Lexer::new();
 
         assert_eq!(
@@ -472,6 +443,93 @@ mod tests {
     }
 
     #[test]
+    fn test_directives() {
+        let mut lexer = Lexer::new();
+
+        assert_eq!(
+            lexer.run(String::from(" .ORIG ")),
+            vec![Token::Directive(Directive::ORIG)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" .FILL ")),
+            vec![Token::Directive(Directive::FILL)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" .BLKW ")),
+            vec![Token::Directive(Directive::BLKW)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" .STRINGZ ")),
+            vec![Token::Directive(Directive::STRINGZ)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" .END ")),
+            vec![Token::Directive(Directive::END)]
+        );
+    }
+
+    #[test]
+    fn test_numbers() {
+        let mut lexer = Lexer::new();
+
+        assert_eq!(
+            lexer.run(String::from(" #1 ")),
+            vec![Token::Number(1)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" #2 ")),
+            vec![Token::Number(2)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" #3 ")),
+            vec![Token::Number(3)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" #128 ")),
+            vec![Token::Number(128)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" #-128 ")),
+            vec![Token::Number(-128)]
+        );
+
+        assert_eq!(
+            lexer.run(String::from(" x0000 ")),
+            vec![Token::Number(0)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" x1 ")),
+            vec![Token::Number(1)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" x0001 ")),
+            vec![Token::Number(1)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" xFFFF ")),
+            vec![Token::Number(-1)]
+        );
+    }
+
+    #[test]
+    fn test_strings() {
+        let file = String::from(r#".STRINGZ "Hello, World!"  "#);
+
+        let mut lexer = Lexer::new();
+        let tokens = lexer.run(file);
+
+        println!("TOKENS: {:?}", tokens);
+
+        assert!(tokens == vec![Token::Directive(Directive::STRINGZ), Token::String("Hello, World!".to_string())]);
+        // assert!(tokens[5] == Token::Number(65535_u16 as i16));
+    }
+    
+    #[test]
+    fn test_labels() {
+        todo!();
+    }
+
+    #[test]
     fn test_case_sensitivity() {
         let mut lexer = Lexer::new();
 
@@ -520,5 +578,35 @@ mod tests {
             lexer.run(String::from(" r1 ")),
             lexer.run(String::from(" R1 "))
         );
+
+        assert_eq!(
+            lexer.run(String::from(" .end ")),
+            lexer.run(String::from(" .END "))
+        );
+    }
+
+    #[test]
+    fn test_hex_overflow() {
+        // let file = String::from("NOT_TOO_BIG  .FILL   xFFF6 \n EVEN_THIS .FILL xFFFF");
+
+        let mut lexer = Lexer::new();
+        // let tokens = lexer.run(file);
+
+        // assert!(tokens[2] == Token::Number(-10));
+        // assert!(tokens[5] == Token::Number(-1));
+
+        assert_eq!(
+            lexer.run(String::from(" xFFF6 ")),
+            vec![Token::Number(-10)]
+        );
+        assert_eq!(
+            lexer.run(String::from(" xFFFF ")),
+            vec![Token::Number(-1)]
+        );
+    }
+
+    #[test]
+    fn test_commas() {
+        todo!()
     }
 }
