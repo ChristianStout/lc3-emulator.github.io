@@ -233,7 +233,7 @@ mod tests {
         let file = String::from("NOT_TOO_BIG  .FILL   xFFF6\nEVEN_THIS .FILL xFFFF");
 
         let mut lexer = Lexer::new();
-        let tokens = lexer.run(file.split_ascii_whitespace().collect());
+        let tokens = lexer.run(file);
 
         assert!(tokens[2] == Token::Number(65526_u16 as i16));
         assert!(tokens[5] == Token::Number(65535_u16 as i16));
@@ -244,11 +244,27 @@ mod tests {
         let file = String::from(r#".STRINGZ "Hello, World!"  "#);
 
         let mut lexer = Lexer::new();
-        let tokens = lexer.run(file.split_ascii_whitespace().collect());
+        let tokens = lexer.run(file);
 
         println!("TOKENS: {:?}", tokens);
 
         assert!(tokens == vec![Token::Directive(Directive::STRINGZ), Token::String("Hello, World!".to_string())]);
         // assert!(tokens[5] == Token::Number(65535_u16 as i16));
+    }
+
+    #[test]
+    fn test_commas() {
+
+    }
+
+    #[test]
+    fn test_br_nzp() {
+
+        let file = String::from(r#"BRnzp  something  "#);
+
+        let mut lexer = Lexer::new();
+        let tokens = lexer.run(file);
+
+        assert!(tokens == vec![Token::Instruction(OpcodeIns::Br(true, true, true)), Token::Label(String::from("something"))]);
     }
 }
