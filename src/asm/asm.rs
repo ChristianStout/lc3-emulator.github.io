@@ -26,7 +26,10 @@ impl Asm {
             }
         }
 
-        println!("TOKENS: {:?}", tokens);
+        // println!("TOKENS: {:?}", tokens);
+        for (i, token) in tokens.iter().enumerate() {
+            println!("{}\t: {:?}", i, token);
+        }
 
         vec![]
     }

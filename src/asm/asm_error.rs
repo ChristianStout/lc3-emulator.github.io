@@ -1,3 +1,4 @@
+use super::token::*;
 
 pub enum ErrorType {
     SyntaxError,
@@ -15,8 +16,8 @@ impl ErrorType {
 
 pub struct AsmError {
     line_content: String,
-    line_num: i32,
-    from_to: Option<(i32, i32)>,
+    line_num: usize,
+    from_to: Option<(usize, usize)>,
     err_type: ErrorType,
     msg: String,
 }
@@ -25,14 +26,24 @@ impl AsmError {
     pub fn new(line_content: &str, line_num: i32, err_type: ErrorType, msg: &str) -> AsmError {
         AsmError {
             line_content: String::from(line_content),
-            line_num: line_num,
+            line_num: line_num as usize,
             from_to: None,
             err_type: err_type,
             msg: String::from(msg),
         }
     }
 
-    pub fn set_from_to(&mut self, from: i32, to: i32) {
+    pub fn from(line_content: &str, token: Token, err_type: ErrorType, msg: &str) -> AsmError {
+        AsmError {
+            line_content: String::from(line_content),
+            line_num: token.line_num,
+            from_to: Some((token.from, token.to)),
+            err_type: err_type,
+            msg: String::from(msg),
+        }
+    }
+
+    pub fn set_from_to(&mut self, from: usize, to: usize) {
         self.from_to = Some((from, to));
     }
 
