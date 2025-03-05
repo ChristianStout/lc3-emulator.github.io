@@ -7,7 +7,7 @@ use super::token::*;
 pub struct Lexer {
     pub token_stream: Vec<Token>,
     pub errors: Vec<AsmError>,
-    syntax_checker: SyntaxChecker,
+    pub syntax_checker: SyntaxChecker,
     curr_file: String,
     file_as_chars: Vec<char>,
     curr_line_num: i32,

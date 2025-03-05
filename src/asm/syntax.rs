@@ -49,6 +49,22 @@ impl SyntaxChecker {
         }
     }
 
+    pub fn verify_file(&self, file: &str) {
+        let split_file: Vec<&str> = file.split_whitespace().collect();
+
+        for line in split_file {
+            if self.instruction_line.is_match(line) {
+                continue;
+            }
+            if self.directive_line.is_match(line) {
+                continue;
+            }
+            if self.ignore_line.is_match(line) {
+                continue;
+            }
+        }
+    }
+
     pub fn is_ins(&self, line: &str) -> bool {
         return self.instruction_line.is_match(line);
     }
