@@ -30,10 +30,10 @@ impl SyntaxChecker {
 
         // let ins_line_regex: Regex = Regex::new(r#"([A-Za-z_][A-Za-z0-9_]*\s)?(\s)*[A-Za-z]+(\s)*(\s([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|(R|r)[0-7]|PC)(,(\s)+([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|(R|r)[0-7]|PC)(,(\s)+([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|(R|r)[0-7]|PC))?)?)?(\s)*(;.*)?"#).unwrap();
         let ins_line_regex: Regex = Regex::new(
-            r#"^([A-Za-z_][A-Za-z0-9_]*\s)?\s*([A-Za-z]+)(\s+((((r|R)[0-7])|([A-Za-z_][A-Za-z0-9_]*)|(((x|X)[0-9A-Fa-f]+)|#[0-9]+))(,\s*((((r|R)[0-7])|([A-Za-z_][A-Za-z0-9_]*)|(((x|X)[0-9A-Fa-f]+)|#[0-9]+)))(,\s*((((r|R)[0-7])|([A-Za-z_][A-Za-z0-9_]*)|(((x|X)[0-9A-Fa-f]+)|#[0-9]+))))?)?)?)?\s*(;.*)?$"#
+            r#"^\s*([A-Za-z_][A-Za-z0-9_]*\s)?\s*([A-Za-z]+)(\s+((((r|R)[0-7])|([A-Za-z_][A-Za-z0-9_]*)|(((x|X)[0-9A-Fa-f]+)|#[0-9]+))(,\s*((((r|R)[0-7])|([A-Za-z_][A-Za-z0-9_]*)|(((x|X)[0-9A-Fa-f]+)|#[0-9]+)))(,\s*((((r|R)[0-7])|([A-Za-z_][A-Za-z0-9_]*)|(((x|X)[0-9A-Fa-f]+)|#[0-9]+))))?)?)?)?\s*(;.*)?$"#
         ).unwrap();
         let dir_line_regex: Regex = Regex::new(
-            r#"^([A-Za-z_][A-Za-z0-9_]*\s)?\s*([.][A-Za-z]+)\s*(\s((r|R)[0-7])|([A-Za-z_][A-Za-z0-9_]*)|(".*")|(((x|X)[0-9A-Fa-f]+)|#[0-9]+))?\s*(;.*)?$"#
+            r#"^\s*([A-Za-z_][A-Za-z0-9_]*\s)?\s*([.][A-Za-z]+)\s*(\s((r|R)[0-7])|([A-Za-z_][A-Za-z0-9_]*)|(".*")|(((x|X)[0-9A-Fa-f]+)|#[0-9]+))?\s*(;.*)?$"#
         ).unwrap();
 
         let ins_name = Regex::new(
@@ -159,6 +159,7 @@ mod tests {
         assert!(s.instruction_line.is_match(r"here RET"));
         assert!(s.instruction_line.is_match(r"add r1,r1, #1"));
         assert!(s.instruction_line.is_match(r"                NOT     R0, R0"));
+        assert!(s.instruction_line.is_match(r"       hello    NOT     R0, R0 ; Whitespace must be allowed before labels"));
 
         assert!(!s.instruction_line.is_match(r"12 add r1, #1, #1"));
         assert!(!s.instruction_line.is_match(r"hi add r1, 1, #1"));
@@ -187,6 +188,7 @@ mod tests {
         assert!(s.directive_line.is_match(r#"        .END"#));
         assert!(s.directive_line.is_match(r#".END"#));
         assert!(s.directive_line.is_match(r#".Okay"#));
+        assert!(s.directive_line.is_match(r#"    end    .END ; Whitespace must be allowed before labels"#));
 
         assert!(!s.directive_line.is_match(r#"         ORIG  x3000 "#));
         assert!(!s.directive_line.is_match(r#"        .ORIG  x3000, x3000 "#));
