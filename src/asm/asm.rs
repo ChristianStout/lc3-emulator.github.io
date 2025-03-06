@@ -18,7 +18,9 @@ impl Asm {
         // 3. Verify that file is semantically valid
         // 4. Assemble Vec<Token> into binary Vec<u16> & Symbol Table
 
-        self.lexer.syntax_checker.verify_file(input_file);
+        if !self.lexer.syntax_checker.is_syntactically_valid_file(&input_file) {
+            return vec![];
+        }
 
         let tokens = self.lexer.run(input_file);
         

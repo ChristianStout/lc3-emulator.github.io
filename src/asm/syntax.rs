@@ -1,5 +1,7 @@
 use regex::Regex;
 
+use super::asm_error::{AsmError, ErrorType};
+
 #[allow(dead_code)]
 pub struct SyntaxChecker {
     instruction_line: Regex,
@@ -18,16 +20,21 @@ pub struct SyntaxChecker {
 #[allow(dead_code)]
 impl SyntaxChecker {
     pub fn new() -> SyntaxChecker {
-        let label = Regex::new(r#"^[A-Za-z_][A-Za-z0-9_]*$"#).unwrap();
-        let reg = Regex::new(r#"^(R|r)[0-7]$"#).unwrap();
-        let imm = Regex::new(r##"^(([#][-]?[0-9]+)|([x][0-9A-F]+))$"##).unwrap();
+        let label = r#"^[A-Za-z_][A-Za-z0-9_]*"#;
+        let reg = r#"^(R|r)[0-7]$"#;
+        let imm = r##"^(([#][-]?[0-9]+)|([x][0-9A-F]+))$"##;
+        let ignore = r#"^(\s)*(;.*)?$"#;
         let string_whole = Regex::new(r#"^["].*["]$"#).unwrap();
         let string_start = Regex::new(r#"^["].*"#).unwrap();
         let string_end = Regex::new(r#".*["]$"#).unwrap();
 
-        let ins_line_regex: Regex = Regex::new(r#"([A-Za-z_][A-Za-z0-9_]*\s)?(\s)*[A-Z]+(\s)*(\s([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|R[0-7]|PC)(,(\s)+([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|R[0-7]|PC)(,(\s)+([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|R[0-7]|PC))?)?)?(\s)*(;.*)?"#).unwrap();
-        let dir_line_regex: Regex = Regex::new(r#"([A-Za-z][A-Za-z0-9]*\s)?(\s)*[.][A-Za-z0-9]*(\s)+(x[0-9]+|["].+["]|)?(\s)?(;.*)?[\n|\r|\n\r]"#).unwrap();
-        let ignore_regex: Regex = Regex::new(r#"^(\s)*(;.*)?$"#).unwrap();
+        // let ins_line_regex: Regex = Regex::new(r#"([A-Za-z_][A-Za-z0-9_]*\s)?(\s)*[A-Za-z]+(\s)*(\s([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|(R|r)[0-7]|PC)(,(\s)+([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|(R|r)[0-7]|PC)(,(\s)+([A-Za-z_][A-Za-z0-9_]*|#[0-9]+|(R|r)[0-7]|PC))?)?)?(\s)*(;.*)?"#).unwrap();
+        let ins_line_regex: Regex = Regex::new(
+            r#"^([A-Za-z_][A-Za-z0-9_]*\s)?\s*([A-Za-z]+)(\s+((((r|R)[0-7])|([A-Za-z_][A-Za-z0-9_]*)|(((x|X)[0-9A-Fa-f]+)|#[0-9]+))(,\s*((((r|R)[0-7])|([A-Za-z_][A-Za-z0-9_]*)|(((x|X)[0-9A-Fa-f]+)|#[0-9]+)))(,\s*((((r|R)[0-7])|([A-Za-z_][A-Za-z0-9_]*)|(((x|X)[0-9A-Fa-f]+)|#[0-9]+)))))?)?)?\s*(;.*)?$"#
+        ).unwrap();
+        let dir_line_regex: Regex = Regex::new(
+            r#"^([A-Za-z_][A-Za-z0-9_]*\s)?\s*([.][A-Za-z]+)\s*(\s((r|R)[0-7])|([A-Za-z_][A-Za-z0-9_]*)|(".*")|(((x|X)[0-9A-Fa-f]+)|#[0-9]+))?\s*(;.*)?$"#
+        ).unwrap();
 
         let ins_name = Regex::new(
             "((BR[N]?[Z]?[P]?)|ADD|AND|JMP|JSR|JSRR|LD|LDI|LDR|LEA|NOT|RET|RTI|ST|STI|STR|GETC|OUT|PUTS|IN|HALT)$"
@@ -37,22 +44,23 @@ impl SyntaxChecker {
         SyntaxChecker {
             instruction_line: ins_line_regex,
             directive_line: dir_line_regex,
-            ignore_line: ignore_regex,
+            ignore_line: Regex::new(ignore).unwrap(),
             instruction_name: ins_name,
             directive_name: dir_name,
-            register: reg,
-            label: label,
-            imm: imm,
+            register: Regex::new(&format!("{reg}$")).unwrap(),
+            label: Regex::new(&format!("{label}$")).unwrap(),
+            imm: Regex::new(&format!("{imm}$")).unwrap(),
             string_whole: string_whole,
             string_start: string_start,
             string_end: string_end,
         }
     }
 
-    pub fn verify_file(&self, file: &str) {
-        let split_file: Vec<&str> = file.split_whitespace().collect();
+    pub fn is_syntactically_valid_file(&self, file: &str) -> bool {
+        let split_file: Vec<&str> = file.split('\n').collect();
+        let mut errors: Vec<AsmError> = vec![];
 
-        for line in split_file {
+        for (i, line) in split_file.iter().enumerate() {
             if self.instruction_line.is_match(line) {
                 continue;
             }
@@ -62,7 +70,22 @@ impl SyntaxChecker {
             if self.ignore_line.is_match(line) {
                 continue;
             }
+
+            errors.push(AsmError::new(
+                line,
+                i as i32 + 1,
+                ErrorType::SyntaxError,
+                "The line provided was not syntactically valid. HINT: Check operands, extra commas, immediate values"
+            ))
         }
+
+        let file_is_valid = errors.len() == 0;
+
+        for err in errors.into_iter() {
+            err.print();
+        }
+
+        return file_is_valid;
     }
 
     pub fn is_ins(&self, line: &str) -> bool {
@@ -113,6 +136,88 @@ impl SyntaxChecker {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_instruction_lines() {
+        let s = SyntaxChecker::new();
+
+        assert!(s.instruction_line.is_match(r"       add  r1, r1, r1 "));
+        assert!(s.instruction_line.is_match(r"hi     add  r1, r1, hi "));
+        assert!(s.instruction_line.is_match(r"       add  r1, hi, r1 "));
+        assert!(s.instruction_line.is_match(r"       add  hi, r1, r1 "));
+        assert!(s.instruction_line.is_match(r"       add  #1, r1, r1 "));
+        assert!(s.instruction_line.is_match(r"       add  #1, #1, r1 "));
+        assert!(s.instruction_line.is_match(r"       add  #1, r1, #1 "));
+        assert!(s.instruction_line.is_match(r"       add  #1, #1, #1 "));
+        assert!(s.instruction_line.is_match(r"       add  xF, XF, ff "));
+        assert!(s.instruction_line.is_match(r"_      add  R0, R1, r1 "));
+        assert!(s.instruction_line.is_match(r"       add  #1, #1, #1 ; Comments are ignored"));
+        assert!(s.instruction_line.is_match(r"       add  #1, #1, #1;even here "));
+        assert!(s.instruction_line.is_match(r"       add ; Instructions don' need operands "));
+        assert!(s.instruction_line.is_match(r"here RET"));
+        assert!(s.instruction_line.is_match(r"add r1,r1, #1"));
+
+        assert!(!s.instruction_line.is_match(r"12 add r1, #1, #1"));
+        assert!(!s.instruction_line.is_match(r"hi add r1, 1, #1"));
+        assert!(!s.instruction_line.is_match(r"hi add r1, r1, r1, r1"));
+        assert!(!s.instruction_line.is_match(r"hi add! r1, r1, r1 "));
+        assert!(!s.instruction_line.is_match(r"hi .add r1, r1, r1 "));
+        assert!(!s.instruction_line.is_match(r"; comment"));
+        assert!(!s.instruction_line.is_match(r""));
+    }
+
+    #[test]
+    fn test_directive_lines() {
+        let s = SyntaxChecker::new();
+        
+        assert!(s.directive_line.is_match(r#"        .ORIG  x3000 "#));
+        assert!(s.directive_line.is_match(r#"start   .ORIG  x3000 "#));
+        assert!(s.directive_line.is_match(r#"start   .orig  x3000 "#));
+        assert!(s.directive_line.is_match(r#"start   .FILL  "HI!" "#));
+        assert!(s.directive_line.is_match(r#"        .ANYTHING    "#));
+        assert!(s.directive_line.is_match(r#"        .ORIG  #3000 "#));
+        assert!(s.directive_line.is_match(r#"        .ORIG  #3000 ; comments are supported"#));
+        assert!(s.directive_line.is_match(r#"        .ORIG  #3000;"#));
+        assert!(s.directive_line.is_match(r#"start   .ORIG  #3000 ; MORE COMMENTS!!! "#));
+        assert!(s.directive_line.is_match(r#".ORIG  #3000 ; labels are not required "#));
+        assert!(s.directive_line.is_match(r#"        .end"#));
+        assert!(s.directive_line.is_match(r#"        .END"#));
+        assert!(s.directive_line.is_match(r#".END"#));
+        assert!(s.directive_line.is_match(r#".Okay"#));
+
+        assert!(!s.directive_line.is_match(r#"         ORIG  x3000 "#));
+        assert!(!s.directive_line.is_match(r#"        .ORIG  x3000, x3000 "#));
+        assert!(!s.directive_line.is_match(r#"  ;     .ORIG  x3000 "#));
+        assert!(!s.directive_line.is_match(r#"        ADD  r1, r1 "#));
+        assert!(!s.directive_line.is_match(r#"HI    ADD  r1, r1 "#));
+        assert!(!s.directive_line.is_match(r#"HI"#));
+        assert!(!s.directive_line.is_match(r#""#));
+        assert!(!s.directive_line.is_match(r#"_"#));
+        assert!(!s.directive_line.is_match(r#"._"#));
+        assert!(!s.directive_line.is_match(r#"._"#));
+        assert!(!s.directive_line.is_match(r#" END. "#));
+        assert!(!s.directive_line.is_match(r#" .! "#));
+    }
+
+    #[test]
+    fn test_ignore_lines() {
+        let s = SyntaxChecker::new();
+        
+        assert!(s.ignore_line.is_match(r"  ;       .ORIG  x3000    "));
+        assert!(s.ignore_line.is_match(r"  ;  A COMMENT  "));
+        assert!(s.ignore_line.is_match(r"    "));
+        assert!(s.ignore_line.is_match(r""));
+        assert!(s.ignore_line.is_match(r";"));
+        assert!(s.ignore_line.is_match("\t\t;"));
+        assert!(s.ignore_line.is_match(" ;  LITERALLY ANYTHING YOU WOULD WANT TO PUT HERE ^_^"));
+
+        assert!(!s.ignore_line.is_match(r"         .ORIG  x3000    "));
+        assert!(!s.ignore_line.is_match(r"       add  r1, r1, r1   "));
+        assert!(!s.ignore_line.is_match(r"       add  r1, r1, r1   "));
+        assert!(!s.ignore_line.is_match(r"hello;   "));
+        assert!(!s.ignore_line.is_match(r"_ "));
+        assert!(!s.ignore_line.is_match(r"! "));
+    }
 
     #[test]
     fn test_br_nzp_regex() {

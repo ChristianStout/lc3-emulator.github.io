@@ -1,3 +1,4 @@
 
 NOT_TOO_BIG  .FILL   xFFF6
 EVEN_THIS .FILL xFFFF
+ hi r2, r1, r2

@@ -70,7 +70,7 @@ impl Lexer {
             }
 
             word_buffer.push(c);
-            println!("word_buffer: {}", word_buffer.iter().collect::<String>());
+            // println!("word_buffer: {}", word_buffer.iter().collect::<String>());
         }
 
         let tokens = self.token_stream.clone();
@@ -112,7 +112,7 @@ impl Lexer {
         // parse hierarchy
         let upper = word.to_ascii_uppercase();
 
-        println!("{}, len = {}", upper, upper.len());
+        // println!("{}, len = {}", upper, upper.len());
 
         if self.syntax_checker.is_ignore(&upper) {
             return;
@@ -256,7 +256,6 @@ impl Lexer {
     }
 
      pub fn parse_escape(&mut self, character: char) -> char {
-        println!("Reached here");
         match character {
             '\\' | '\'' |'\"' => return character,
             'n' => return '\n',
