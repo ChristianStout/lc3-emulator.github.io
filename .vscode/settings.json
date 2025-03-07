@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "bindgen",
         "BLKW",
         "BRNP",
         "BRNZ",
@@ -9,6 +10,7 @@
         "JSRR",
         "pcoffset",
         "STRINGZ",
-        "trapvec"
+        "trapvec",
+        "Tsify"
     ]
 }

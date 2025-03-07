@@ -1,7 +1,10 @@
 use super::asm_ins::*;
 use super::directive::*;
+use wasm_bindgen::prelude::*;
+use serde::{Deserialize, Serialize};
+use tsify::Tsify;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Tsify, Serialize,Deserialize)]
 pub enum TokenType {
     Label(String),
     Instruction(OpcodeIns),
@@ -12,13 +15,20 @@ pub enum TokenType {
     INVALID(String),
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Tsify, Serialize, Deserialize)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 pub struct Token {
     pub inner_token: TokenType,
     pub to: usize,
     pub from: usize,
     pub line_num: usize,
     pub original_match: String,
+}
+
+#[derive(Tsify, Serialize, Deserialize)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
+pub struct TokenCollection {
+    pub tokens: Vec<Token>,
 }
 
 impl Token {

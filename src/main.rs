@@ -1,5 +1,6 @@
 pub mod vm;
 pub mod asm;
+
 use crate::vm::vm::VM;
 use crate::asm::asm::Asm;
 use std::env;

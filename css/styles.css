@@ -1,0 +1,37 @@
+
+body {
+    background-color: gray;
+    color:antiquewhite;
+}
+
+#editing, #highlighting {
+    /* Both elements need the same text and space styling so they are directly on top of each other */
+    margin: 10px;
+    padding: 10px;
+    border: 0;
+    width: calc(100% - 32px);
+    height: 150px;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+#editing, #highlighting, #highlighting * {
+    /* Also add text styles to highlighting tokens */
+    font-size: 15pt;
+    font-family: monospace;
+    line-height: 20pt;
+    tab-size: 4;
+}
+
+#editing {
+    z-index: 1;
+    color: transparent;
+    background: transparent;
+    caret-color: black; 
+    resize: none;
+}
+
+#highlighting {
+    z-index: 0;
+}
