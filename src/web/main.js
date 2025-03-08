@@ -1,40 +1,57 @@
-// import Prism from 'prismjs';
-import init, { greet, get_tokens } from "./pkg/lc3_emulator.js";
+import { get_tokens, highlight_text } from "../../pkg/lc3_emulator.js";
 
-await init();
+// const DEFAULT_TEXT_COLOR = '#c0d1cd';
+const DEFAULT_TEXT_COLOR = '#FFFFF';
 
-greet("World");
-let tokens = get_tokens(`
-NOT_TOO_BIG  .FILL   xFFF6
-EVEN_THIS .FILL xFFFF
- hi r2, r1, r2
-`);
+// /**
+//  * finds keywords in the text, and wraps them in spans of the correct color
+//  *
+//  * @param {string} text
+//  * @returns {string}
+//  */
+// function highlight_text(text) {
+//     let out = `<span color="${DEFAULT_TEXT_COLOR}">`
 
-console.log(tokens);
+//     let tokens = get_tokens(text);
+
+//     console.log(tokens)
+
+//     out += text;
+
+//     // tokens.tokens.forEach(token => {
+        
+//     // });
+
+//     return out + `</span>`
+// }
+
 
 /*
 The following three functions and corresponding html & css are from:
 https://css-tricks.com/creating-an-editable-textarea-that-supports-syntax-highlighted-code/
 */
 
+/**
+ * finds keywords in the text, and wraps them in spans of the correct color
+ *
+ * @param {string} text
+ * @returns {}
+ */
 function update(text) {
-    let result_element = document.querySelector("#highlighting-content");
-    // Update code
+    let result_element = document.querySelector("#highlighted-content");
 
-    if(text[text.length-1] == "\n") { // If the last character is a newline character
-        text += " "; // Add a placeholder space character to the final line 
+    if(text[text.length-1] == "\n") {
+        text += " ";
     }
 
-    // result_element.innerHTML = text.replace(new RegExp("&", "g"), "&").replace(new RegExp("<", "g"), "<");
-    result_element.innerText = text;
-    // Syntax Highlight
-    // Prism.highlightElement(result_element);
+    text = text.replace(new RegExp("&", "g"), "&").replace(new RegExp("<", "g"), "<");
+    
+    result_element.innerHTML = highlight_text(text);
 }
 
 function sync_scroll(element) {
-    /* Scroll result to scroll coords of event - sync with textarea */
     let result_element = document.querySelector("#highlighting");
-    // Get and set x and y
+
     result_element.scrollTop = element.scrollTop;
     result_element.scrollLeft = element.scrollLeft;
 }
@@ -42,7 +59,6 @@ function sync_scroll(element) {
 function check_tab(element, event) {
     let code = element.value;
     if(event.key == "Tab") {
-        /* Tab key pressed */
         event.preventDefault(); // stop normal
         let before_tab = code.slice(0, element.selectionStart); // text before tab
         let after_tab = code.slice(element.selectionEnd, element.value.length); // text after tab
@@ -54,3 +70,5 @@ function check_tab(element, event) {
         update(element.value); // Update text to include indent
     }
 }
+
+export {highlight_text, update, sync_scroll, check_tab}

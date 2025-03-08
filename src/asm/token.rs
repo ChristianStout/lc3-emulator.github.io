@@ -39,7 +39,7 @@ impl Token {
 
         Token {
             inner_token: token,
-            to: to,
+            to: to - 1,
             from: from,
             line_num: line_num as usize,
             original_match: original_match,
