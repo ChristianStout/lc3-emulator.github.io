@@ -25,7 +25,8 @@ function update(text) {
         text += " "; // Add a placeholder space character to the final line 
     }
 
-    result_element.innerHTML = text.replace(new RegExp("&", "g"), "&").replace(new RegExp("<", "g"), "<");
+    // result_element.innerHTML = text.replace(new RegExp("&", "g"), "&").replace(new RegExp("<", "g"), "<");
+    result_element.innerText = text;
     // Syntax Highlight
     // Prism.highlightElement(result_element);
 }
