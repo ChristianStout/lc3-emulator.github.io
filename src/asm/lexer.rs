@@ -27,7 +27,8 @@ impl Lexer {
         }
     }
 
-    pub fn run(&mut self, input_file: String) -> Vec<Token> {
+    pub fn run(&mut self, mut input_file: String) -> Vec<Token> {
+        input_file.push(' ');
         self.file_as_chars = input_file.chars().collect();
         self.curr_file = input_file;
 
@@ -40,7 +41,6 @@ impl Lexer {
 
             if c == '\"' {
                 let string = self.parse_string();
-                // self.token_stream.push(Token::String(string));
                 self.token_stream.push(Token::new(
                     self.position,
                     self.curr_line_num,
@@ -70,14 +70,13 @@ impl Lexer {
             }
 
             word_buffer.push(c);
-            // println!("word_buffer: {}", word_buffer.iter().collect::<String>());
         }
 
-        let tokens = self.token_stream.clone();
+        let tokens = self.token_stream.clone(); // TODO: Remove clone()
 
         self.reset();
 
-        return tokens; // TODO: Remove clone()
+        return tokens;
     }
 
     fn next_char(&mut self) -> char {
@@ -112,8 +111,6 @@ impl Lexer {
         // parse hierarchy
         let upper = word.to_ascii_uppercase();
 
-        // println!("{}, len = {}", upper, upper.len());
-
         if self.syntax_checker.is_ignore(&upper) {
             return;
         }
@@ -127,7 +124,6 @@ impl Lexer {
             return;
         }
         else if self.syntax_checker.is_directive_name(&upper) {
-            // self.token_stream.push(Token::Directive(Directive::from(&upper)));
             self.token_stream.push(Token::new(
                 self.position,
                 self.curr_line_num,
@@ -137,7 +133,6 @@ impl Lexer {
             return;
         }
         else if self.syntax_checker.is_valid_register(&upper) {
-            // self.token_stream.push(TokenType::Register(self.parse_register(&upper)));
             self.token_stream.push(Token::new(
                 self.position,
                 self.curr_line_num,
@@ -147,7 +142,6 @@ impl Lexer {
             return;
         }
         else if self.syntax_checker.is_valid_immediate_value(&word) {
-            // self.token_stream.push(TokenType::Number(self.parse_immediate_value(&word)));
             self.token_stream.push(Token::new(
                 self.position,
                 self.curr_line_num,
@@ -157,7 +151,6 @@ impl Lexer {
             return;
         }
         else if self.syntax_checker.is_valid_label(&word) {
-            // self.token_stream.push(Token::Label(word.to_string()));
             self.token_stream.push(Token::new(
                 self.position,
                 self.curr_line_num,
@@ -167,8 +160,6 @@ impl Lexer {
             return;
         }
         else {
-            // self.token_stream.push(Token::INVALID(word));
-
             self.token_stream.push(Token::new(
                 self.position,
                 self.curr_line_num,
@@ -649,5 +640,15 @@ mod tests {
     #[test]
     fn test_commas() {
         // todo!()
+    }
+
+    #[test]
+    fn test_no_following_whitespace() {
+        let mut lexer = Lexer::new();
+
+        assert_eq!(
+            lexer.run(String::from("LA"))[0].inner_token,
+            TokenType::Label(String::from("LA")),
+        )
     }
 }
