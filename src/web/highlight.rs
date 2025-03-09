@@ -71,6 +71,7 @@ mod tests {
 
     #[test]
     fn test_get_highlighted_text() {
-        let text = highlight_text("")
+        let text = highlight_text("in ");
+        println!("{text}");
     }
 }

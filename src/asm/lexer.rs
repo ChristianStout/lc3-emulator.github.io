@@ -413,12 +413,8 @@ mod tests {
             TokenType::Instruction(OpcodeIns::Jsrr)
         );
         assert_ne!(
-            lexer.run(String::from(" in "))[0].inner_token,
-            TokenType::Instruction(OpcodeIns::Jsrr)
-        );
-        assert_ne!(
-            lexer.run(String::from(" bradd "))[0].inner_token,
-            TokenType::Instruction(OpcodeIns::Jsrr)
+            lexer.run(String::from(" badd "))[0].inner_token,
+            TokenType::Instruction(OpcodeIns::Add)
         );
     }
 

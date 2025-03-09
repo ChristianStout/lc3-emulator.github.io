@@ -5,6 +5,7 @@ pub struct Memory {
     inner: [u16; POW_2_16],
 }
 
+#[allow(dead_code)]
 impl Memory {
     pub fn new() -> Memory {
         Memory {

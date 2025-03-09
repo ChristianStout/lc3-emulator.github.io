@@ -8,6 +8,7 @@ pub struct Registers {
     pub halt: bool,
 }
 
+#[allow(dead_code)]
 impl Registers {
     pub fn new() -> Registers {
         Registers {

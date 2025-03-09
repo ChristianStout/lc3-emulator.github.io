@@ -1,15 +1,7 @@
-import init, { greet, get_tokens } from "../../pkg/lc3_emulator.js";
+import init from "../../pkg/lc3_emulator.js";
 import { highlight_text, update, sync_scroll, check_tab } from './main.js';
 
 await init();
-
-let tokens = get_tokens(`
-NOT_TOO_BIG  .FILL   xFFF6
-EVEN_THIS .FILL xFFFF
- hi r2, r1, r2
-`);
-
-console.log(tokens);
 
 // EVENT LISTENERS --------------------------------
 

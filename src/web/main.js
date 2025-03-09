@@ -1,38 +1,12 @@
 import { get_tokens, highlight_text } from "../../pkg/lc3_emulator.js";
 
-// const DEFAULT_TEXT_COLOR = '#c0d1cd';
-const DEFAULT_TEXT_COLOR = '#FFFFF';
-
-// /**
-//  * finds keywords in the text, and wraps them in spans of the correct color
-//  *
-//  * @param {string} text
-//  * @returns {string}
-//  */
-// function highlight_text(text) {
-//     let out = `<span color="${DEFAULT_TEXT_COLOR}">`
-
-//     let tokens = get_tokens(text);
-
-//     console.log(tokens)
-
-//     out += text;
-
-//     // tokens.tokens.forEach(token => {
-        
-//     // });
-
-//     return out + `</span>`
-// }
-
-
 /*
 The following three functions and corresponding html & css are from:
 https://css-tricks.com/creating-an-editable-textarea-that-supports-syntax-highlighted-code/
 */
 
 /**
- * finds keywords in the text, and wraps them in spans of the correct color
+ * replaces text in a textarea with text in a <code> tag, formatting, and highlighting
  *
  * @param {string} text
  * @returns {}
@@ -49,7 +23,14 @@ function update(text) {
     result_element.innerHTML = highlight_text(text);
 }
 
+/**
+ * replaces text in a textarea with text in a <code> tag, formatting, and highlighting
+ *
+ * @param {HTMLTextAreaElement} element
+ * @returns {}
+ */
 function sync_scroll(element) {
+    console.log(`SYNC_SCROLL: ${element}`);
     let result_element = document.querySelector("#highlighting");
 
     result_element.scrollTop = element.scrollTop;
@@ -57,6 +38,7 @@ function sync_scroll(element) {
 }
 
 function check_tab(element, event) {
+    console.log(`CHECK_TAB: ${element}, ${event}`);
     let code = element.value;
     if(event.key == "Tab") {
         event.preventDefault(); // stop normal
