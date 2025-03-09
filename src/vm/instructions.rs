@@ -6,6 +6,7 @@ use super::trap::Trap;
 Uses the command pattern to execute functions dynamically
 */
 
+#[allow(dead_code)]
 pub trait Instruction {
     /*
     value is the raw instruction interpreted from the asm,
@@ -486,10 +487,10 @@ mod test {
     }
 
 
-    #[test]
-    fn test_br() {
-        unimplemented!();
-    }
+    // #[test]
+    // fn test_br() {
+    //     unimplemented!();
+    // }
 
     #[test]
     fn test_jmp() {

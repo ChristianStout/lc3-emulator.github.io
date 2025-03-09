@@ -1,5 +1,9 @@
+use wasm_bindgen::prelude::*;
+use serde::{Deserialize, Serialize};
+use tsify::Tsify;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Tsify, Serialize, Deserialize)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 pub enum Directive {
     // ORIG(u16),
     // FILL(u16),

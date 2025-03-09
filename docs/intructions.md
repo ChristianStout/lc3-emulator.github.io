@@ -1,5 +1,5 @@
-# Types of Intructions
-label?  instruction([nzp]?)  (reg (, reg|label (, reg|label)))? ingore_space
+# Types of Instructions
+label?  instruction([nzp]?)  (reg (, reg|label (, reg|label)))? ignore_space
 
 ```asm
 label? instruction                  ; no operands (includes traps)

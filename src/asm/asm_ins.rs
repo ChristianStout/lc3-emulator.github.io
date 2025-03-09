@@ -1,9 +1,12 @@
+use wasm_bindgen::prelude::*;
+use serde::{Deserialize, Serialize};
+use tsify::Tsify;
 
 pub enum OperandType {
     /*
     # OperandType
     This enum refers to the types 
-    of operands an intruction could have
+    of operands an instruction could have
     */
     Reg,
     Label,
@@ -11,7 +14,8 @@ pub enum OperandType {
     RegOrImm,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Tsify, Serialize, Deserialize)]
+#[tsify(into_wasm_abi, from_wasm_abi)]
 #[allow(dead_code)]
 pub enum OpcodeIns {
     Add,

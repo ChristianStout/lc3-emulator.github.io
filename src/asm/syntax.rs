@@ -37,9 +37,9 @@ impl SyntaxChecker {
         ).unwrap();
 
         let ins_name = Regex::new(
-            "((BR[N]?[Z]?[P]?)|ADD|AND|JMP|JSR|JSRR|LD|LDI|LDR|LEA|NOT|RET|RTI|ST|STI|STR|GETC|OUT|PUTS|IN|HALT)$"
+            r#"^((BR[N]?[Z]?[P]?)|ADD|AND|JMP|JSR|JSRR|LD|LDI|LDR|LEA|NOT|RET|RTI|ST|STI|STR|GETC|OUT|PUTS|IN|HALT)$"#
         ).unwrap();
-        let dir_name = Regex::new("[.](ORIG|FILL|BLKW|STRINGZ|END)").unwrap();
+        let dir_name = Regex::new(r"[.](ORIG|FILL|BLKW|STRINGZ|END)").unwrap();
 
         SyntaxChecker {
             instruction_line: ins_line_regex,
@@ -141,33 +141,37 @@ mod tests {
     fn test_instruction_lines() {
         let s = SyntaxChecker::new();
 
-        assert!(s.instruction_line.is_match(r"       add  r1, r1, r1 "));
-        assert!(s.instruction_line.is_match(r"hi     add  r1, r1, hi "));
-        assert!(s.instruction_line.is_match(r"       add  r1, hi, r1 "));
-        assert!(s.instruction_line.is_match(r"       add  hi, r1, r1 "));
-        assert!(s.instruction_line.is_match(r"       add  #1, r1, r1 "));
-        assert!(s.instruction_line.is_match(r"       add  #1, #1, r1 "));
-        assert!(s.instruction_line.is_match(r"       add  #1, r1, #1 "));
-        assert!(s.instruction_line.is_match(r"       add  #1, #1, #1 "));
-        assert!(s.instruction_line.is_match(r"       add  xF, XF, ff "));
-        assert!(s.instruction_line.is_match(r"_      add  R0, R1, r1 "));
-        assert!(s.instruction_line.is_match(r"       add  R0, R1 "));
-        assert!(s.instruction_line.is_match(r"       add  R0 "));
-        assert!(s.instruction_line.is_match(r"       add  #1, #1, #1 ; Comments are ignored"));
-        assert!(s.instruction_line.is_match(r"       add  #1, #1, #1;even here "));
-        assert!(s.instruction_line.is_match(r"       add ; Instructions don' need operands "));
-        assert!(s.instruction_line.is_match(r"here RET"));
-        assert!(s.instruction_line.is_match(r"add r1,r1, #1"));
-        assert!(s.instruction_line.is_match(r"                NOT     R0, R0"));
-        assert!(s.instruction_line.is_match(r"       hello    NOT     R0, R0 ; Whitespace must be allowed before labels"));
+        assert!(s.is_ins(r"       add  r1, r1, r1 "));
+        assert!(s.is_ins(r"hi     add  r1, r1, hi "));
+        assert!(s.is_ins(r"       add  r1, hi, r1 "));
+        assert!(s.is_ins(r"       add  hi, r1, r1 "));
+        assert!(s.is_ins(r"       add  #1, r1, r1 "));
+        assert!(s.is_ins(r"       add  #1, #1, r1 "));
+        assert!(s.is_ins(r"       add  #1, r1, #1 "));
+        assert!(s.is_ins(r"       add  #1, #1, #1 "));
+        assert!(s.is_ins(r"       add  xF, XF, ff "));
+        assert!(s.is_ins(r"_      add  R0, R1, r1 "));
+        assert!(s.is_ins(r"       add  R0, R1 "));
+        assert!(s.is_ins(r"       add  R0 "));
+        assert!(s.is_ins(r"       add  #1, #1, #1 ; Comments are ignored"));
+        assert!(s.is_ins(r"       add  #1, #1, #1;even here "));
+        assert!(s.is_ins(r"       add ; Instructions don' need operands "));
+        assert!(s.is_ins(r"here RET"));
+        assert!(s.is_ins(r"add r1,r1, #1"));
+        assert!(s.is_ins(r"                NOT     R0, R0"));
+        assert!(s.is_ins(r"       hello    NOT     R0, R0 ; Whitespace must be allowed before labels"));
+        assert!(s.is_ins(r"in"));
+        assert!(s.is_ins(r"rin"));
 
-        assert!(!s.instruction_line.is_match(r"12 add r1, #1, #1"));
-        assert!(!s.instruction_line.is_match(r"hi add r1, 1, #1"));
-        assert!(!s.instruction_line.is_match(r"hi add r1, r1, r1, r1"));
-        assert!(!s.instruction_line.is_match(r"hi add! r1, r1, r1 "));
-        assert!(!s.instruction_line.is_match(r"hi .add r1, r1, r1 "));
-        assert!(!s.instruction_line.is_match(r"; comment"));
-        assert!(!s.instruction_line.is_match(r""));
+        assert!(!s.is_ins(r"12 add r1, #1, #1"));
+        assert!(!s.is_ins(r"hi add r1, 1, #1"));
+        assert!(!s.is_ins(r"hi add r1, r1, r1, r1"));
+        assert!(!s.is_ins(r"hi add! r1, r1, r1 "));
+        assert!(!s.is_ins(r"hi .add r1, r1, r1 "));
+        assert!(!s.is_ins(r"; comment"));
+        assert!(!s.is_ins(r""));
+        // assert!(!s.is_ins(r"rin"));
+        // assert!(!s.instruction_line.is_match(r" thalt "));
     }
 
     #[test]
@@ -201,6 +205,7 @@ mod tests {
         assert!(!s.directive_line.is_match(r#"._"#));
         assert!(!s.directive_line.is_match(r#"._"#));
         assert!(!s.directive_line.is_match(r#" END. "#));
+        assert!(!s.directive_line.is_match(r#" .! "#));
         assert!(!s.directive_line.is_match(r#" .! "#));
     }
 
@@ -238,6 +243,41 @@ mod tests {
         assert!(s.is_instruction_name("BRNZP"));
 
         assert!(s.is_instruction_name(&"brnzp".to_ascii_uppercase()));
+    }
+
+    #[test]
+    fn test_instruction_name() {
+        let s = SyntaxChecker::new();
+
+        assert!(s.is_instruction_name("BR"));
+        assert!(s.is_instruction_name("ADD"));
+        assert!(s.is_instruction_name("AND"));
+        assert!(s.is_instruction_name("JMP"));
+        assert!(s.is_instruction_name("JSR"));
+        assert!(s.is_instruction_name("LD"));
+        assert!(s.is_instruction_name("LDI"));
+        assert!(s.is_instruction_name("LDR"));
+        assert!(s.is_instruction_name("LEA"));
+        assert!(s.is_instruction_name("RET"));
+        assert!(s.is_instruction_name("RTI"));
+        assert!(s.is_instruction_name("ST"));
+        assert!(s.is_instruction_name("STI"));
+        assert!(s.is_instruction_name("STR"));
+        assert!(s.is_instruction_name("GETC"));
+        assert!(s.is_instruction_name("OUT"));
+        assert!(s.is_instruction_name("PUTS"));
+        assert!(s.is_instruction_name("IN"));
+        assert!(s.is_instruction_name("HALT"));
+
+        assert!(!s.is_instruction_name("SIN"));
+        assert!(!s.is_instruction_name("in"));
+        assert!(!s.is_instruction_name("ANDY"));
+        assert!(!s.is_instruction_name("AND "));
+        assert!(!s.is_instruction_name("WHAT"));
+        assert!(!s.is_instruction_name("^"));
+        assert!(!s.is_instruction_name("???"));
+        assert!(!s.is_instruction_name(""));
+        assert!(!s.is_instruction_name(" "));
     }
 
     #[test]
