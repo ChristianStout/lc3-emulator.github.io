@@ -60,3 +60,7 @@ code > span#highlight-register {
     color: #50EBB7
 }
 
+code > span#highlight-comment {
+    color: #909996
+}
+
