@@ -14,6 +14,7 @@ pub struct Lexer {
     file_length: usize,
     file_position: usize,
     line_position: usize,
+    file_length: usize,
 }
 
 impl Lexer {
@@ -28,10 +29,12 @@ impl Lexer {
             file_length: 0,
             file_position: 0,
             line_position: 0,
+            file_length: 0,
         }
     }
 
     pub fn run(&mut self, mut input_file: String) -> Vec<Token> {
+        self.file_length = input_file.len();
         input_file.push(' ');
         self.file_length = input_file.len();
         self.file_as_chars = input_file.chars().collect();
@@ -113,6 +116,7 @@ impl Lexer {
         self.file_length = 0;
         self.file_position = 0;
         self.line_position = 0;
+        self.file_length = 0;
     }
 
     pub fn parse_word(&mut self, word: String) {

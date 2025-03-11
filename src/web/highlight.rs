@@ -7,6 +7,7 @@ pub fn highlight_text(text: &str) -> String {
     let mut output: String = String::new();
     let tokens = Lexer::new().run(text.to_string());
     let mut i: usize = 0;
+    let mut curr_line = 1;
 
     for token in tokens {
         
