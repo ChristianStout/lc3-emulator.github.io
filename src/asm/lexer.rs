@@ -197,7 +197,7 @@ impl Lexer {
             .nth(1) // Always R1, R2, R3, ... , R7.
             .expect("Lexer::parse_register: Somehow a register was given without a number. This shouldn't be possible given the Regex.")
             .to_digit(base) // a base 10 number
-            .expect(&format!("Lexer::parse_register: When converting the register value on line {}, could not conver value into base 10 number.", self.curr_line_num));
+            .expect(&format!("Lexer::parse_register: When converting the register value on line {}, could not convert value into base 10 number.", self.curr_line_num));
         
         return register_num as u16;
     }
