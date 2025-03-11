@@ -32,8 +32,8 @@ impl Lexer {
     }
 
     pub fn run(&mut self, mut input_file: String) -> Vec<Token> {
-        self.file_length = input_file.len();
         input_file.push(' ');
+        self.file_length = input_file.len();
         self.file_as_chars = input_file.chars().collect();
         self.curr_file = input_file;
 
@@ -59,17 +59,20 @@ impl Lexer {
                 self.curr_line_num += 1;
             }
 
-            if c == ';' {
-                self.skip_comment();
-                continue;
-            }
-
             if (c.is_whitespace() || c == ';' || c == ',') && word_buffer.len() > 0 {
                 self.parse_word(word_buffer.iter().collect());
                 word_buffer.clear();
                 if c == '\n' {
                     self.line_position = 1;
                 }
+                if c == ';' {
+                    self.skip_comment();
+                }
+                continue;
+            }
+
+            if c == ';' {
+                self.skip_comment();
                 continue;
             }
 
@@ -102,7 +105,7 @@ impl Lexer {
 
     fn skip_comment(&mut self) {
         while self.next_char() != '\n' {
-            if self.position == self.file_length {
+            if self.file_position == self.file_length {
                 return;
             }
         }
@@ -666,6 +669,17 @@ mod tests {
         assert_eq!(
             lexer.run(String::from("LA"))[0].inner_token,
             TokenType::Label(String::from("LA")),
+        )
+    }
+
+    #[test]
+    fn test_comments() {
+        let mut lexer = Lexer::new();
+
+
+        assert_eq!(
+            lexer.run(String::from("LA;"))[0].inner_token,
+            TokenType::Label(String::from("LA"))
         )
     }
 }
