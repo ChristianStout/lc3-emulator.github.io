@@ -7,17 +7,19 @@ pub fn highlight_text(text: &str) -> String {
     let mut output: String = String::new();
     let tokens = Lexer::new().run(text.to_string());
     let mut i: usize = 0;
-    let mut curr_line = 1;
+    let mut curr_line = 0;
 
     for token in tokens {
         
-        // add remaining from previous line, matching comments
-        if curr_line < token.line_num {
-            let (o, oo) = highlight_comment(text, i);
-            i = oo;
-            output.push_str(&o);
-            curr_line = token.line_num;
-        }
+        fill_gap(text, &mut output, &mut i, Some(&token));
+
+        // // add remaining from previous line, matching comments
+        // if curr_line < token.line_num {
+        //     let (o, j) = highlight_comment(text, i);
+        //     i = j;
+        //     output.push_str(&o);
+        //     curr_line = token.line_num;
+        // }
 
         match token.inner_token {
             TokenType::Instruction(_) => {
@@ -60,6 +62,14 @@ pub fn highlight_text(text: &str) -> String {
     let mut entered_comment = false;
 
     for c in text[i..].chars() {
+
+        if c == '\n' {
+            if entered_comment {
+                output.push_str(r#"</span>"#);
+                entered_comment = false;
+            }
+        }
+
         if c == ';' {
             entered_comment = true;
             output.push_str(r#"<span id="highlight-comment">"#);
@@ -75,33 +85,41 @@ pub fn highlight_text(text: &str) -> String {
     return output;
 }
 
-fn highlight_comment(text: &str, from: usize) -> (String, usize) {
-    let mut output = "".to_string();
-    let mut entered_comment = false;
-    let mut i = from;
+fn fill_gap(text: &str, output: &mut str, i: &usize, maybe_token: Option<&Token>) {
 
-    for c in text[from..].chars() {
-        i += 1;
-
-        if c == '\n' {
-            output.push_str(r#"</span>"#);
-            output.push(c);
-            break;
-        }
-        if c == ';' {
-            entered_comment = true;
-            output.push_str(r#"<span id="highlight-comment">"#);
-        }
-
-        output.push(c);
-    }
-
-    if entered_comment {
-        output.push_str(r#"</span>"#);
-    }
-
-    return (output, i);
 }
+
+// fn highlight_comment(text: &str, from: usize) -> (String, usize) {
+//     let mut output = "".to_string();
+//     let mut entered_comment = false;
+//     let mut i = from;
+
+//     for c in text[from..].chars() {
+//         i += 1;
+
+//         if c == '\n' && entered_comment {
+//             output.push_str(r#"</span>"#);
+//             entered_comment = false;
+//         }
+
+//         if c == '\n' {
+//             output.push(c);
+//             break;
+//         }
+//         if c == ';' {
+//             entered_comment = true;
+//             output.push_str(r#"<span id="highlight-comment">"#);
+//         }
+
+//         output.push(c);
+//     }
+
+//     if entered_comment {
+//         output.push_str(r#"</span>"#);
+//     }
+
+//     return (output, i);
+// }
 
 #[cfg(test)]
 mod tests {
@@ -121,11 +139,25 @@ mod tests {
         let text = highlight_text(" hi ; ");
         assert_eq!(text, r#" hi <span id="highlight-comment">; </span>"#.to_string());
 
-        let text = highlight_text(r" hi ; some
-            ;another");
+        let text = highlight_text(r" hi ; so
+            ;a");
         println!("{}", text);
-        assert_eq!(text, r#" hi <span id="highlight-comment">; some</span>
-            <span id="highlight-comment">;another</span>"#.to_string());
+        assert_eq!(text, r#" hi <span id="highlight-comment">; so</span>
+            <span id="highlight-comment">;a</span>"#.to_string());
+
+        
+        let text = highlight_text(" hi;");
+        assert_eq!(text, r#" hi<span id="highlight-comment">;</span>"#.to_string());
+
+
+        let text = highlight_text(r#"
+        hi; boo
+
+        ee"#);
+        assert_eq!(text, r#"
+        hi<span id="highlight-comment">; boo</span>
+
+        ee"#.to_string());
 
     }
 }
