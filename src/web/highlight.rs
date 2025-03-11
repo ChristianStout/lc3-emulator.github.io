@@ -7,7 +7,7 @@ pub fn highlight_text(text: &str) -> String {
     let mut output: String = String::new();
     let tokens = Lexer::new().run(text.to_string());
     let mut i: usize = 0;
-    let mut curr_line = 1;
+    let mut curr_line = 0;
 
     for token in tokens {
         
@@ -86,6 +86,38 @@ fn fill_gap(text: &str, i: &usize, maybe_token: Option<&Token>) -> String {
     return stream;
 
 }
+
+// fn highlight_comment(text: &str, from: usize) -> (String, usize) {
+//     let mut output = "".to_string();
+//     let mut entered_comment = false;
+//     let mut i = from;
+
+//     for c in text[from..].chars() {
+//         i += 1;
+
+//         if c == '\n' && entered_comment {
+//             output.push_str(r#"</span>"#);
+//             entered_comment = false;
+//         }
+
+//         if c == '\n' {
+//             output.push(c);
+//             break;
+//         }
+//         if c == ';' {
+//             entered_comment = true;
+//             output.push_str(r#"<span id="highlight-comment">"#);
+//         }
+
+//         output.push(c);
+//     }
+
+//     if entered_comment {
+//         output.push_str(r#"</span>"#);
+//     }
+
+//     return (output, i);
+// }
 
 #[cfg(test)]
 mod tests {
