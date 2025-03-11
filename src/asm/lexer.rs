@@ -34,7 +34,6 @@ impl Lexer {
     }
 
     pub fn run(&mut self, mut input_file: String) -> Vec<Token> {
-        self.file_length = input_file.len();
         input_file.push(' ');
         self.file_length = input_file.len();
         self.file_as_chars = input_file.chars().collect();
@@ -68,6 +67,14 @@ impl Lexer {
                 if c == '\n' {
                     self.line_position = 1;
                 }
+                if c == ';' {
+                    self.skip_comment();
+                }
+                continue;
+            }
+
+            if c == ';' {
+                self.skip_comment();
                 continue;
             }
 
@@ -100,7 +107,7 @@ impl Lexer {
 
     fn skip_comment(&mut self) {
         while self.next_char() != '\n' {
-            if self.position == self.file_length {
+            if self.file_position == self.file_length {
                 return;
             }
         }
