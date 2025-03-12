@@ -1,12 +1,13 @@
 {
   "name": "lc3-emulator",
+  "type": "module",
   "version": "0.1.0",
   "files": [
     "lc3_emulator_bg.wasm",
     "lc3_emulator.js",
     "lc3_emulator.d.ts"
   ],
-  "module": "lc3_emulator.js",
+  "main": "lc3_emulator.js",
   "types": "lc3_emulator.d.ts",
   "sideEffects": [
     "./snippets/*"
