@@ -1,14 +1,16 @@
 use super::lexer::*;
-// use super::semantic::*;
+use super::semantic::*;
 
 pub struct Asm {
     lexer: Lexer,
+    semantic_checker: SemanticChecker,
 }
 
 impl Asm {
     pub fn new() -> Asm {
         Asm {
             lexer: Lexer::new(),
+            semantic_checker: SemanticChecker::new(),
         }
     }
 
@@ -30,7 +32,8 @@ impl Asm {
             }
         }
 
-        // println!("TOKENS: {:?}", tokens);
+        self.semantic_checker.run(&tokens);
+
         for (i, token) in tokens.iter().enumerate() {
             println!("{}\t: {:?}", i, token);
         }
