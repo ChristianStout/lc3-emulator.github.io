@@ -3,6 +3,7 @@ use super::token::*;
 pub enum ErrorType {
     SyntaxError,
     OperandError,
+    LabelError,
 }
 
 impl ErrorType {
@@ -10,6 +11,7 @@ impl ErrorType {
         match self {
             Self::SyntaxError => return "SyntaxError",
             Self::OperandError => return "OperandError",
+            Self::LabelError => return "LabelError",
         }
     }
 }
