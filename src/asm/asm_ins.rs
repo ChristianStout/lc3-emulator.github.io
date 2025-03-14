@@ -39,6 +39,17 @@ pub enum OpcodeIns {
     INVALID,
 }
 
+impl OperandType {
+    pub fn as_string(&self) -> String {
+        match self {
+            OperandType::Reg => "a register".to_string(),
+            OperandType::Label => "a label".to_string(),
+            OperandType::Imm => "an immediate value".to_string(),
+            OperandType::RegOrImm => "a register or immediate value".to_string(),
+        }
+    }
+}
+
 #[allow(dead_code)]
 impl OpcodeIns {
     // TODO: add get_code() function
@@ -75,7 +86,7 @@ impl OpcodeIns {
     }
 
 
-    pub fn get_type(&self) -> Vec<OperandType> {
+    pub fn get_expected_operands(&self) -> Vec<OperandType> {
         match self {
             OpcodeIns::Add => vec![OperandType::Reg, OperandType::Reg, OperandType::RegOrImm],
             OpcodeIns::And => vec![OperandType::Reg, OperandType::Reg, OperandType::RegOrImm],

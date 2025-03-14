@@ -45,4 +45,14 @@ impl Token {
             original_match: original_match,
         }
     }
+    
+    pub fn get_useless_token() -> Token {
+        Token {
+            inner_token: TokenType::INVALID("".to_string()),
+            from: 0,
+            to: 0,
+            line_num: 0,
+            original_match: "".to_string(),
+        }
+    }
 }

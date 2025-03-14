@@ -11,7 +11,8 @@ pub struct Lexer {
     curr_file: String,
     file_as_chars: Vec<char>,
     curr_line_num: i32,
-    position: usize,
+    file_position: usize,
+    line_position: usize,
 }
 
 impl Lexer {
@@ -23,7 +24,8 @@ impl Lexer {
             curr_file: String::new(),
             file_as_chars: vec![],
             curr_line_num: 0,
-            position: 0,
+            file_position: 0,
+            line_position: 0,
         }
     }
 
@@ -36,13 +38,13 @@ impl Lexer {
         let mut c: char;
             
 
-        while self.position < self.file_as_chars.len() {
-            c = self.next_char(); // iterates self.position
+        while self.file_position < self.file_as_chars.len() {
+            c = self.next_char(); // iterates self.file_position, self.line_position
 
             if c == '\"' {
                 let string = self.parse_string();
                 self.token_stream.push(Token::new(
-                    self.position,
+                    self.line_position,
                     self.curr_line_num,
                     &format!(r#""{}""#, string),
                     TokenType::String(string),
@@ -62,6 +64,9 @@ impl Lexer {
             if (c.is_whitespace() || c == ';' || c == ',') && word_buffer.len() > 0 {
                 self.parse_word(word_buffer.iter().collect());
                 word_buffer.clear();
+                if c == '\n' {
+                    self.line_position = 1;
+                }
                 continue;
             }
 
@@ -80,8 +85,9 @@ impl Lexer {
     }
 
     fn next_char(&mut self) -> char {
-        let c: char = self.file_as_chars[self.position];
-        self.position += 1;
+        let c: char = self.file_as_chars[self.file_position];
+        self.file_position += 1;
+        self.line_position += 1;
         return c;
     }
 
@@ -104,7 +110,8 @@ impl Lexer {
         self.curr_file = String::new();
         self.file_as_chars = vec![];
         self.curr_line_num = 0;
-        self.position = 0;
+        self.file_position = 0;
+        self.line_position = 0;
     }
 
     pub fn parse_word(&mut self, word: String) {
@@ -116,7 +123,7 @@ impl Lexer {
         }
         else if self.syntax_checker.is_instruction_name(&upper) {
             self.token_stream.push(Token::new(
-                self.position,
+                self.line_position,
                 self.curr_line_num,
                 &word,
                 TokenType::Instruction(OpcodeIns::from(&upper))
@@ -125,7 +132,7 @@ impl Lexer {
         }
         else if self.syntax_checker.is_directive_name(&upper) {
             self.token_stream.push(Token::new(
-                self.position,
+                self.line_position,
                 self.curr_line_num,
                 &word,
                 TokenType::Directive(Directive::from(&upper))
@@ -134,7 +141,7 @@ impl Lexer {
         }
         else if self.syntax_checker.is_valid_register(&upper) {
             self.token_stream.push(Token::new(
-                self.position,
+                self.line_position,
                 self.curr_line_num,
                 &word,
                 TokenType::Register(self.parse_register(&upper))
@@ -143,7 +150,7 @@ impl Lexer {
         }
         else if self.syntax_checker.is_valid_immediate_value(&word) {
             self.token_stream.push(Token::new(
-                self.position,
+                self.line_position,
                 self.curr_line_num,
                 &word,
                 TokenType::Number(self.parse_immediate_value(&word))
@@ -152,7 +159,7 @@ impl Lexer {
         }
         else if self.syntax_checker.is_valid_label(&word) {
             self.token_stream.push(Token::new(
-                self.position,
+                self.line_position,
                 self.curr_line_num,
                 &word,
                 TokenType::Label(word.to_string())
@@ -161,7 +168,7 @@ impl Lexer {
         }
         else {
             self.token_stream.push(Token::new(
-                self.position,
+                self.line_position,
                 self.curr_line_num,
                 &word.clone(),
                 TokenType::INVALID(word)

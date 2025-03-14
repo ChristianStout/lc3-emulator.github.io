@@ -1,6 +1,7 @@
 pub mod vm;
 pub mod asm;
 pub mod web;
+pub mod output;
 
 use crate::vm::vm::VM;
 use crate::asm::asm::Asm;

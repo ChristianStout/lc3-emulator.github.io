@@ -82,7 +82,7 @@ impl SyntaxChecker {
         let file_is_valid = errors.len() == 0;
 
         for err in errors.into_iter() {
-            err.print();
+            println!("{}", err.generate_msg());
         }
 
         return file_is_valid;
