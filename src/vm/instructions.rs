@@ -12,6 +12,8 @@ pub trait Instruction {
     value is the raw instruction interpreted from the asm,
     *excluding* the opcode.
      ^^^^^^^^^
+    This is because we already had to obtain that information
+    in order to dynamically call the correct instruction. 
     */
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory);
 }
