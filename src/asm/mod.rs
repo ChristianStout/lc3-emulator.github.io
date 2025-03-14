@@ -5,6 +5,5 @@ pub mod directive;
 pub mod token;
 pub mod syntax;
 pub mod lexer;
-pub mod asm_error;
-pub mod token;
 pub mod semantic;
+pub mod file;

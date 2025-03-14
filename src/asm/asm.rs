@@ -1,5 +1,6 @@
 use super::lexer::*;
 use super::semantic::*;
+use crate::output::*;
 
 pub struct Asm {
     lexer: Lexer,
@@ -24,15 +25,16 @@ impl Asm {
             return vec![];
         }
 
-        let tokens = self.lexer.run(input_file);
+        let tokens = self.lexer.run(input_file.clone());
         
         if self.lexer.errors.len() > 0 {
+            let io = &Box::new(StdIO {});
             for error in self.lexer.errors.iter() {
-                error.print();
+                println!("{}", error.generate_msg());
             }
         }
 
-        self.semantic_checker.run(&tokens);
+        self.semantic_checker.run(&tokens, input_file);
 
         for (i, token) in tokens.iter().enumerate() {
             println!("{}\t: {:?}", i, token);

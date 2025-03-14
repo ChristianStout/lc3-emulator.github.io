@@ -1,4 +1,5 @@
 use super::token::*;
+use crate::output::SystemIO;
 
 pub enum ErrorType {
     SyntaxError,
@@ -49,8 +50,10 @@ impl AsmError {
         self.from_to = Some((from, to));
     }
 
-    pub fn print(&self) {
-        println!("{}", self.generate_msg())
+    pub fn print(&self, io: &mut Box<dyn SystemIO>) {
+        let _ = self.generate_msg()
+            .chars()
+            .map(|c| { io.print_char(c); });
     }
 
     pub fn generate_msg(&self) -> String {
