@@ -30,16 +30,24 @@ impl Asm {
         let tokens = self.lexer.run(input_file.clone());
         
         if self.lexer.errors.len() > 0 {
-            let io = &Box::new(StdIO {});
+            // let io = &Box::new(StdIO {});
             for error in self.lexer.errors.iter() {
                 println!("{}", error.generate_msg());
             }
+            return vec![];
         }
 
         self.semantic_checker.run(&tokens, input_file);
 
         for (i, token) in tokens.iter().enumerate() {
             println!("{}\t: {:?}", i, token);
+        }
+
+        if self.semantic_checker.errors.len() > 0 {
+            for error in self.semantic_checker.errors.iter() {
+                println!("{}", error.generate_msg());
+            }
+            return vec![];
         }
 
         vec![]
