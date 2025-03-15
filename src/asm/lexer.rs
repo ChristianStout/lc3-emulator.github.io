@@ -4,6 +4,10 @@ use super::syntax::SyntaxChecker;
 use super::asm_error::*;
 use super::token::*;
 
+const CODE_TOKEN_NO_CATEGORY: &'static str = "SX001";
+const CODE_STRING_NOT_ENDED: &'static str = "SX002";
+const CODE_INVALID_ESCAPE_CHAR: &'static str = "SX003";
+
 pub struct Lexer {
     pub token_stream: Vec<Token>,
     pub errors: Vec<AsmError>,
@@ -187,6 +191,7 @@ impl Lexer {
             ));
             let line = self.get_current_line();
             self.errors.push(AsmError::new(
+                String::from(CODE_TOKEN_NO_CATEGORY),
                 &line,
                 self.curr_line_num,
                 ErrorType::SyntaxError,
@@ -251,6 +256,7 @@ impl Lexer {
             if c == '\n' {
                 let curr_line = self.get_current_line();
                 self.errors.push(AsmError::new(
+                    String::from(CODE_STRING_NOT_ENDED),
                     &curr_line,
                     self.curr_line_num,
                     ErrorType::SyntaxError,
@@ -276,6 +282,7 @@ impl Lexer {
                 let line = self.get_current_line();
                 let line_number = self.curr_line_num;
                 self.errors.push(AsmError::new(
+                    String::from(CODE_INVALID_ESCAPE_CHAR),
                     &line,
                     line_number,
                     ErrorType::SyntaxError,
@@ -570,13 +577,16 @@ mod tests {
     fn test_strings() {
         // let file = String::from(r#".STRINGZ "Hello, World!"  "#);
 
-        // let mut lexer = Lexer::new();
-        // let tokens = lexer.run(file);
+        // let mut lexer = Lexer::new();#[test]
+    fn test_comments() {
+        let mut lexer = Lexer::new();
 
-        // println!("TOKENS: {:?}", tokens);
 
-        // assert!(tokens == vec![Token::Directive(Directive::STRINGZ), Token::String("Hello, World!".to_string())]);
-        // assert!(tokens[5] == TokenType::Number(65535_u16 as i16));
+        assert_eq!(
+            lexer.run(String::from("LA;"))[0].inner_token,
+            TokenType::Label(String::from("LA"))
+        )
+    }
     }
     
     #[test]
@@ -685,4 +695,14 @@ mod tests {
             TokenType::Label(String::from("LA"))
         )
     }
+
+    #[test]
+    fn test_invalid_escape_char() {
+        let mut lexer = Lexer::new();
+
+        let _ = lexer.run(String::from(r#"hello \\."#));
+        
+        assert_eq!(lexer.errors[0].code, String::from(CODE_INVALID_ESCAPE_CHAR));
+    } 
+    
 }

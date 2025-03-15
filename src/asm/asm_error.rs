@@ -18,6 +18,7 @@ impl ErrorType {
 }
 
 pub struct AsmError {
+    pub code: String,
     line_content: String,
     line_num: usize,
     from_to: Option<(usize, usize)>,
@@ -26,8 +27,9 @@ pub struct AsmError {
 }
 
 impl AsmError {
-    pub fn new(line_content: &str, line_num: i32, err_type: ErrorType, msg: &str) -> AsmError {
+    pub fn new(code: String, line_content: &str, line_num: i32, err_type: ErrorType, msg: &str) -> AsmError {
         AsmError {
+            code: code,
             line_content: String::from(line_content),
             line_num: line_num as usize,
             from_to: None,
@@ -36,8 +38,9 @@ impl AsmError {
         }
     }
 
-    pub fn from(line_content: &str, token: Token, err_type: ErrorType, msg: &str) -> AsmError {
+    pub fn from(code: String, line_content: &str, token: Token, err_type: ErrorType, msg: &str) -> AsmError {
         AsmError {
+            code: code,
             line_content: String::from(line_content),
             line_num: token.line_num,
             from_to: Some((token.from, token.to)),
@@ -61,12 +64,13 @@ impl AsmError {
     pub fn generate_msg(&self) -> String {
         // let mut msg = String::from("");
 
+        let code = &self.code;
         let err_type = self.err_type.as_str();
         let line_num = self.line_num;
         let specific_problem = &self.msg;
         let line_content = &self.line_content;
 
-        let mut gen_msg = format!("{err_type}: On line {line_num}, {specific_problem}\n\t{line_content}");
+        let mut gen_msg = format!("[{code}] {err_type}: On line {line_num}, {specific_problem}\n\t{line_content}");
 
         if let Some((from, to)) = self.from_to {
             gen_msg += "\n\t";

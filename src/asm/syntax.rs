@@ -2,6 +2,8 @@ use regex::Regex;
 
 use super::asm_error::{AsmError, ErrorType};
 
+const CODE_SYNTAX_ERROR: &'static str = "SX000";
+
 #[allow(dead_code)]
 pub struct SyntaxChecker {
     instruction_line: Regex,
@@ -72,6 +74,7 @@ impl SyntaxChecker {
             }
 
             errors.push(AsmError::new(
+                String::from(CODE_SYNTAX_ERROR),
                 line,
                 i as i32 + 1,
                 ErrorType::SyntaxError,
