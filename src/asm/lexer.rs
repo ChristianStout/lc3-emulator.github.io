@@ -64,10 +64,15 @@ impl Lexer {
                 self.parse_word(word_buffer.iter().collect());
                 word_buffer.clear();
                 if c == '\n' {
-                    self.line_position = 1;
+                    self.next_line();
                 }
                 continue;
             }
+
+            if c == '\n' {
+                self.next_line();
+            }
+
 
             if c.is_whitespace() && word_buffer.len() == 0 {
                 continue;
@@ -88,6 +93,11 @@ impl Lexer {
         self.file_position += 1;
         self.line_position += 1;
         return c;
+    }
+    
+    fn next_line(&mut self) {
+        self.line_position = 1;
+        self.curr_line_num += 1;
     }
 
     fn get_current_line(&mut self) -> String {

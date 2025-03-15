@@ -1,6 +1,7 @@
 use wasm_bindgen::prelude::*;
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
+use std::collections::VecDeque;
 
 pub enum OperandType {
     /*
@@ -12,6 +13,7 @@ pub enum OperandType {
     Label,
     Imm,
     RegOrImm,
+    String,
 }
 
 #[derive(Debug, PartialEq, Clone, Tsify, Serialize, Deserialize)]
@@ -46,6 +48,7 @@ impl OperandType {
             OperandType::Label => "a label".to_string(),
             OperandType::Imm => "an immediate value".to_string(),
             OperandType::RegOrImm => "a register or immediate value".to_string(),
+            OperandType::String => "a string".to_string(),
         }
     }
 }
@@ -86,26 +89,39 @@ impl OpcodeIns {
     }
 
 
-    pub fn get_expected_operands(&self) -> Vec<OperandType> {
+    pub fn get_expected_operands(&self) -> VecDeque<OperandType> {
         match self {
-            OpcodeIns::Add => vec![OperandType::Reg, OperandType::Reg, OperandType::RegOrImm],
-            OpcodeIns::And => vec![OperandType::Reg, OperandType::Reg, OperandType::RegOrImm],
-            OpcodeIns::Br(_,_,_) => vec![OperandType::Label],
-            OpcodeIns::Jmp => vec![OperandType::Reg],
-            OpcodeIns::Jsr => vec![OperandType::Label],
-            OpcodeIns::Jsrr => vec![OperandType::Reg],
-            OpcodeIns::Ld => vec![OperandType::Reg, OperandType::Label],
-            OpcodeIns::Ldi => vec![OperandType::Reg, OperandType::Label],
-            OpcodeIns::Ldr => vec![OperandType::Reg, OperandType::Reg, OperandType::Imm],
-            OpcodeIns::Lea => vec![OperandType::Reg, OperandType::Label],
-            OpcodeIns::Not => vec![OperandType::Reg, OperandType::Reg],
-            OpcodeIns::Ret => vec![],
-            OpcodeIns::Rti => vec![],
-            OpcodeIns::St => vec![OperandType::Reg, OperandType::Label],
-            OpcodeIns::Sti => vec![OperandType::Reg, OperandType::Label],
-            OpcodeIns::Str => vec![OperandType::Reg, OperandType::Reg, OperandType::Imm],
-            OpcodeIns::Trap(_) => vec![],
-            _ => vec![],
+            OpcodeIns::Add => vec![OperandType::Reg, OperandType::Reg, OperandType::RegOrImm].into_iter().collect(),
+            OpcodeIns::And => vec![OperandType::Reg, OperandType::Reg, OperandType::RegOrImm].into_iter().collect(),
+            OpcodeIns::Br(_,_,_) => vec![OperandType::Label].into_iter().collect(),
+            OpcodeIns::Jmp => vec![OperandType::Reg].into_iter().collect(),
+            OpcodeIns::Jsr => vec![OperandType::Label].into_iter().collect(),
+            OpcodeIns::Jsrr => vec![OperandType::Reg].into_iter().collect(),
+            OpcodeIns::Ld => vec![OperandType::Reg, OperandType::Label].into_iter().collect(),
+            OpcodeIns::Ldi => vec![OperandType::Reg, OperandType::Label].into_iter().collect(),
+            OpcodeIns::Ldr => vec![OperandType::Reg, OperandType::Reg, OperandType::Imm].into_iter().collect(),
+            OpcodeIns::Lea => vec![OperandType::Reg, OperandType::Label].into_iter().collect(),
+            OpcodeIns::Not => vec![OperandType::Reg, OperandType::Reg].into_iter().collect(),
+            OpcodeIns::Ret => vec![].into_iter().collect(),
+            OpcodeIns::Rti => vec![].into_iter().collect(),
+            OpcodeIns::St => vec![OperandType::Reg, OperandType::Label].into_iter().collect(),
+            OpcodeIns::Sti => vec![OperandType::Reg, OperandType::Label].into_iter().collect(),
+            OpcodeIns::Str => vec![OperandType::Reg, OperandType::Reg, OperandType::Imm].into_iter().collect(),
+            OpcodeIns::Trap(subroutine) => self.get_expected_operand_for_trap(*subroutine),
+            _ => vec![].into_iter().collect(),
+        }
+    }
+
+    fn get_expected_operand_for_trap(&self, subroutine: u16) -> VecDeque<OperandType> {
+        match subroutine {
+            20 => vec![].into_iter().collect(),
+            21 => vec![].into_iter().collect(),
+            22 => vec![].into_iter().collect(),
+            23 => vec![].into_iter().collect(),
+            25 => vec![].into_iter().collect(),
+            _ => {
+                panic!("asm_ins::OpcodeIns::get_expected_operand_for_trap(): Received an impossible trap subroutine number.");
+            },
         }
     }
 
