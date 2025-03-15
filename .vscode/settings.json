@@ -11,6 +11,7 @@
         "pcoffset",
         "STRINGZ",
         "trapvec",
-        "Tsify"
+        "Tsify",
+        "Deque"
     ]
 }

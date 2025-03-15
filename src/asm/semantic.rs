@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use super::{asm_error::{AsmError, ErrorType}, asm_ins::OperandType};
 use super::token::*;
 use super::file::AsmFile;
@@ -20,11 +20,11 @@ impl SemanticChecker {
         }
     }
     
+    #[allow(unused_variables)]
     pub fn run(&mut self, tokens: &Vec<Token>, file: String) {
         self.original_file = AsmFile::new(file);
-        let mut expected_operands: Vec<OperandType> = vec![];
-        let mut prev_token: &Token = &Token::get_useless_token();
-        let mut curr_ins_token: &Token = prev_token;
+        let mut expected_operands: VecDeque<OperandType> = vec![].into_iter().collect();
+        let mut curr_ins_token: &Token = &Token::get_useless_token();
 
         // I am well aware of the spaghetti, thank you...
         for token in tokens {
@@ -50,6 +50,22 @@ impl SemanticChecker {
                     curr_ins_token = token;
 
                     expected_operands = op_ins.get_expected_operands();
+                    continue;
+                }
+                TokenType::Directive(directive) => {
+                    if expected_operands.len() > 0 {
+                        // Syntactically, it is not possible to get a directive as an argument, so an instruction must have terminated early
+                        self.errors.push(AsmError::from(
+                            &self.original_file.get_line(curr_ins_token.line_num),
+                            curr_ins_token.clone(),
+                            ErrorType::OperandError,
+                            &format!("{} was expected, was not provided.", expected_operands[0].as_string()),
+                        ));
+                    }                   
+                    curr_ins_token = token;
+
+                    expected_operands = directive.get_expected_operands();
+                    continue
                 }
                 TokenType::Label(label) => {
                     if expected_operands.len() == 0 {
@@ -58,7 +74,7 @@ impl SemanticChecker {
                     }
                     
                     match token.inner_token {
-                        TokenType::Label(_) => {},
+                        TokenType::Label(_) => { /* ... */ },
                         _ => {
                             self.errors.push(AsmError::from(
                                 &self.original_file.get_line(token.line_num),
@@ -69,14 +85,83 @@ impl SemanticChecker {
                         }
                     }
                 },
-                TokenType::Number(_) => {
+                TokenType::Number(_) => 'number: {
+                    if expected_operands.len() == 0 {
+                        self.errors.push(AsmError::from(
+                            &self.original_file.get_line(token.line_num),
+                            token.clone(),
+                            ErrorType::OperandError,
+                            &format!("no operands were expected, but received a number instead."),
+                        ));
+                        break 'number;
+                    }
                     
+                    match expected_operands.front().unwrap() {
+                        OperandType::Imm | OperandType::RegOrImm => { /* ... */ },
+                        _ => {
+                            self.errors.push(AsmError::from(
+                                &self.original_file.get_line(token.line_num),
+                                token.clone(),
+                                ErrorType::OperandError,
+                                &format!("{} was expected, but received a number instead.", expected_operands[0].as_string()),
+                            ));
+                        }
+                    }
+                }
+                TokenType::Register(_) => 'number: {
+                    if expected_operands.len() == 0 {
+                        self.errors.push(AsmError::from(
+                            &self.original_file.get_line(token.line_num),
+                            token.clone(),
+                            ErrorType::OperandError,
+                            &format!("no operands were expected, but received a register instead."),
+                        ));
+                        break 'number;
+                    }
+                    
+                    match expected_operands.front().unwrap() {
+                        OperandType::Imm | OperandType::RegOrImm => { /* ... */ },
+                        _ => {
+                            self.errors.push(AsmError::from(
+                                &self.original_file.get_line(token.line_num),
+                                token.clone(),
+                                ErrorType::OperandError,
+                                &format!("{} was expected, but received a register instead.", expected_operands[0].as_string()),
+                            ));
+                        }
+                    }
+                }
+                TokenType::String(_) => 'string: {
+                    if expected_operands.len() == 0 {
+                        self.errors.push(AsmError::from(
+                            &self.original_file.get_line(token.line_num),
+                            token.clone(),
+                            ErrorType::OperandError,
+                            &format!("no operands were expected, but received a string instead."),
+                        ));
+                        break 'string;
+                    }
+                    
+                    match expected_operands.front().unwrap() {
+                        OperandType::String => { /* ... */ },
+                        _ => {
+                            self.errors.push(AsmError::from(
+                                &self.original_file.get_line(token.line_num),
+                                token.clone(),
+                                ErrorType::OperandError,
+                                &format!("{} was expected, but received a string instead.", expected_operands[0].as_string()),
+                            ));
+                        }
+                    }
                 }
                 _ => {
                     // AsmError::new()
                 }
             }
-            prev_token = token;
+
+            if expected_operands.len() > 0 {
+                expected_operands.pop_front();
+            }
         }
     }
 
@@ -127,7 +212,7 @@ name ret
 name ret
         "#;
 
-        let errors = get_semantic_errors(file);
+        let errors: Vec<AsmError> = get_semantic_errors(file);
 
         for err in errors {
             println!("{}", err.generate_msg());
@@ -142,7 +227,7 @@ name ret
 ADD R1, R2, RET
         "#;
 
-        let errors = get_semantic_errors(file);
+        let errors: Vec<AsmError> = get_semantic_errors(file);
 
         for err in errors {
             println!("{}", err.generate_msg());
@@ -150,4 +235,112 @@ ADD R1, R2, RET
 
         assert!(get_semantic_errors(file).len() > 0);
     }
+
+    #[test]
+    fn test_unexpected_label() {
+        let file = r#"
+Hello RET
+ADD R1, R2, Hello
+        "#;
+
+        let errors: Vec<AsmError> = get_semantic_errors(file);
+
+        for err in errors {
+            println!("{}", err.generate_msg());
+        }
+
+        assert!(get_semantic_errors(file).len() > 0)
+    }
+    
+    #[test]
+    fn test_expected_nothing_but_received_number() {
+        let file = r#"
+RET #1
+        "#;
+
+        let errors: Vec<AsmError> = get_semantic_errors(file);
+
+        for err in errors {
+            println!("{}", err.generate_msg());
+        }
+
+        assert!(get_semantic_errors(file).len() > 0)
+    }
+    
+    #[test]
+    fn test_received_unexpected_number() {
+        let file = r#"
+JSR #1
+        "#;
+
+        let errors: Vec<AsmError> = get_semantic_errors(file);
+
+        for err in errors {
+            println!("{}", err.generate_msg());
+        }
+
+        assert!(get_semantic_errors(file).len() > 0)
+    }
+    
+    #[test]
+    fn test_expected_nothing_but_received_register() {
+        let file = r#"
+RET r1
+        "#;
+
+        let errors: Vec<AsmError> = get_semantic_errors(file);
+
+        for err in errors {
+            println!("{}", err.generate_msg());
+        }
+
+        assert!(get_semantic_errors(file).len() > 0)
+    }
+    
+    #[test]
+    fn test_received_unexpected_register() {
+        let file = r#"
+JSR r1
+        "#;
+
+        let errors: Vec<AsmError> = get_semantic_errors(file);
+
+        for err in errors {
+            println!("{}", err.generate_msg());
+        }
+
+        assert!(get_semantic_errors(file).len() > 0)
+    
+    }
+
+    #[test]
+    fn test_expected_nothing_but_received_string() {
+        let file = r#"
+.END "This"
+        "#; // strings can only SYNTACTICALLY be given to a directive
+
+        let errors: Vec<AsmError> = get_semantic_errors(file);
+
+        for err in errors {
+            println!("{}", err.generate_msg());
+        }
+
+        assert!(get_semantic_errors(file).len() > 0)
+    }
+    
+    #[test]
+    fn test_received_unexpected_string() {
+        let file = r#"
+.FILL "This"
+        "#; // strings can only SYNTACTICALLY be given to a directive
+
+        let errors: Vec<AsmError> = get_semantic_errors(file);
+
+        for err in errors {
+            println!("{}", err.generate_msg());
+        }
+
+        assert!(get_semantic_errors(file).len() > 0)
+    }
+ 
 }

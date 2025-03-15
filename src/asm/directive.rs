@@ -1,6 +1,8 @@
 use wasm_bindgen::prelude::*;
 use serde::{Deserialize, Serialize};
 use tsify::Tsify;
+use super::asm_ins::OperandType;
+use std::collections::VecDeque;
 
 #[derive(Debug, PartialEq, Clone, Tsify, Serialize, Deserialize)]
 #[tsify(into_wasm_abi, from_wasm_abi)]
@@ -25,6 +27,14 @@ impl Directive {
             ".STRINGZ" => return Directive::STRINGZ,
             ".END" => return Directive::END,
             _ => unreachable!(),
+        }
+    }
+
+    pub fn get_expected_operands(&self) -> VecDeque<OperandType> {
+        match self {
+            Directive::ORIG | Directive::FILL | Directive::BLKW => vec![OperandType::Imm].into_iter().collect(),
+            Directive::STRINGZ => vec![OperandType::String].into_iter().collect(),
+            _ => vec![].into_iter().collect(),
         }
     }
 }

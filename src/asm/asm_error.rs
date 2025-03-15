@@ -71,11 +71,11 @@ impl AsmError {
         if let Some((from, to)) = self.from_to {
             gen_msg += "\n\t";
             
-            for _ in 0..from {
+            for _ in 0..(from-1) {
                 gen_msg += " ";
             }
             for _ in 0..to {
-                gen_msg += "~";
+                gen_msg += "^";
             }
         }
 
