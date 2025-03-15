@@ -46,10 +46,12 @@ impl AsmError {
         }
     }
 
+    #[allow(dead_code)]
     pub fn set_from_to(&mut self, from: usize, to: usize) {
         self.from_to = Some((from, to));
     }
 
+    #[allow(dead_code)]
     pub fn print(&self, io: &mut Box<dyn SystemIO>) {
         let _ = self.generate_msg()
             .chars()

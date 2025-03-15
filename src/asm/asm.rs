@@ -2,11 +2,13 @@ use super::lexer::*;
 use super::semantic::*;
 use crate::output::*;
 
+#[allow(dead_code)]
 pub struct Asm {
     lexer: Lexer,
     semantic_checker: SemanticChecker,
 }
 
+#[allow(dead_code)]
 impl Asm {
     pub fn new() -> Asm {
         Asm {

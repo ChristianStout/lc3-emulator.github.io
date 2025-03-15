@@ -1,15 +1,16 @@
 use std::collections::HashMap;
-use super::{asm_error::{AsmError, ErrorType}, asm_ins::{OpcodeIns, OperandType}};
+use super::{asm_error::{AsmError, ErrorType}, asm_ins::OperandType};
 use super::token::*;
 use super::file::AsmFile;
 
-
+#[allow(dead_code)]
 pub struct SemanticChecker {
     symbol_table: HashMap<String, Token>,
     errors: Vec<AsmError>,
     original_file: AsmFile,
 }
 
+#[allow(dead_code)]
 impl SemanticChecker {
     pub fn new() -> SemanticChecker {
         SemanticChecker {
@@ -124,6 +125,21 @@ mod tests {
         let file = r#"
 name ret
 name ret
+        "#;
+
+        let errors = get_semantic_errors(file);
+
+        for err in errors {
+            println!("{}", err.generate_msg());
+        }
+
+        assert!(get_semantic_errors(file).len() > 0);
+    }
+
+    #[test]
+    fn test_instruction_on_same_line() {
+        let file = r#"
+ADD R1, R2, RET
         "#;
 
         let errors = get_semantic_errors(file);
