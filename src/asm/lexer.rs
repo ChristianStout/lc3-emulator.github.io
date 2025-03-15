@@ -14,7 +14,6 @@ pub struct Lexer {
     file_length: usize,
     file_position: usize,
     line_position: usize,
-    file_length: usize,
 }
 
 impl Lexer {
@@ -29,7 +28,6 @@ impl Lexer {
             file_length: 0,
             file_position: 0,
             line_position: 0,
-            file_length: 0,
         }
     }
 
@@ -57,8 +55,9 @@ impl Lexer {
                 continue;
             }
 
-            if c == '\n' {
-                self.curr_line_num += 1;
+            if c == ';' {
+                self.skip_comment();
+                continue;
             }
 
             if (c.is_whitespace() || c == ';' || c == ',') && word_buffer.len() > 0 {
@@ -67,14 +66,6 @@ impl Lexer {
                 if c == '\n' {
                     self.line_position = 1;
                 }
-                if c == ';' {
-                    self.skip_comment();
-                }
-                continue;
-            }
-
-            if c == ';' {
-                self.skip_comment();
                 continue;
             }
 
@@ -123,7 +114,6 @@ impl Lexer {
         self.file_length = 0;
         self.file_position = 0;
         self.line_position = 0;
-        self.file_length = 0;
     }
 
     pub fn parse_word(&mut self, word: String) {
