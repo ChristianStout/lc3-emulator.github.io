@@ -62,7 +62,7 @@ fn fill_gap(text: &str, i: &usize, maybe_token: Option<&Token>) -> String {
     let mut stream = "".to_string();
 
     for (j, c) in text[start..end].chars().enumerate() {
-        if c == ';' {
+        if c == ';' && !entered_comment {
             stream.push_str(r#"<span id="highlight-comment">"#);
             entered_comment = true;
         }
@@ -123,5 +123,13 @@ mod tests {
 
         ee"#.to_string());
 
+    }
+
+    #[test]
+    fn test_multiple_semicolons() {
+        let text = highlight_text(r#" hi ;;;
+        ;; "#);
+        assert_eq!(text, r#" hi <span id="highlight-comment">;;;</span>
+        <span id="highlight-comment">;; </span>"#.to_string());
     }
 }
