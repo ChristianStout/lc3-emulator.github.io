@@ -17,6 +17,7 @@ pub struct VM {
     memory: Memory,
 }
 
+#[allow(dead_code)]
 impl VM {
     pub fn new() -> VM {
         let mut ins: HashMap<u8, Box<dyn Instruction>> = HashMap::new();

@@ -1,18 +1,22 @@
 use std::io::*;
 
+#[allow(dead_code)]
 pub trait SystemIO {
     fn print_char(&mut self, c: char);
     fn get_char(&mut self) -> char;
 }
 
+#[allow(dead_code)]
 pub struct StdIO;
 
 /* The main purpose of WebIO is to allow JS to get and set a char that is controlled by
 an HTML tag with a  */
+#[allow(dead_code)]
 pub struct WebIO {
     current_char: char,
 }
 
+#[allow(dead_code)]
 impl SystemIO for StdIO {
     fn print_char(&mut self, c: char) {
         print!("{c}");
