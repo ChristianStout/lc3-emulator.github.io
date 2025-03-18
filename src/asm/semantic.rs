@@ -1,5 +1,5 @@
-use std::collections::{HashMap, VecDeque};
-use super::{asm_error::{AsmError, ErrorType}, asm_ins::OperandType};
+use std::{collections::{HashMap, VecDeque}, hash::Hash};
+use super::{asm_error::{AsmError, ErrorType}, asm_ins::OperandType, directive::{self, Directive}};
 use super::token::*;
 use super::file::AsmFile;
 
@@ -10,16 +10,21 @@ const CODE_RECEIVED_UNEXPECTED_LABEL: &'static str = "SM003";
 const CODE_EXPECTED_NOTHING_RECEIVED_LABEL: &'static str = "SM004";
 const CODE_REDEFINED_LABEL: &'static str = "SM005";
 const CODE_RECEIVED_UNEXPECTED_NUMBER: &'static str = "SM006";
-const CODE_EXPECTED_NOTHING_RECEIVED_REGISTER: &'static str = "SM007";
+const CODE_EXPECTED_NOTHING_RECEIVED_NUMBER: &'static str = "SM007";
 const CODE_RECEIVED_UNEXPECTED_REGISTER: &'static str = "SM008";
-const CODE_EXPECTED_NOTHING_RECEIVED_STRING: &'static str = "SM009";
+const CODE_EXPECTED_NOTHING_RECEIVED_REGISTER: &'static str = "SM009";
 const CODE_RECEIVED_UNEXPECTED_STRING: &'static str = "SM010";
+const CODE_EXPECTED_NOTHING_RECEIVED_STRING: &'static str = "SM011";
+const CODE_NO_ORIG: &'static str = "SM012";
+const CODE_NO_END: &'static str = "SM013";
+const CODE_USED_UNDEFINED_LABEL: &'static str = "SM014";
 
 #[allow(dead_code)]
 pub struct SemanticChecker {
     pub symbol_table: HashMap<String, Token>,
     pub errors: Vec<AsmError>,
     original_file: AsmFile,
+    used_labels: HashMap<String, Token>,
 }
 
 #[allow(dead_code)]
@@ -29,6 +34,7 @@ impl SemanticChecker {
             symbol_table: HashMap::new(),
             errors: vec![],
             original_file: AsmFile::new("".to_string()),
+            used_labels: HashMap::new(),
         }
     }
     
@@ -37,6 +43,18 @@ impl SemanticChecker {
         self.original_file = AsmFile::new(file);
         let mut expected_operands: VecDeque<OperandType> = vec![].into_iter().collect();
         let mut curr_ins_token: &Token = &Token::get_useless_token();
+        let mut end_encountered = false;
+        
+        if !self.orig_at_top(&tokens) {
+            self.errors.push(AsmError::from(
+                String::from(CODE_NO_ORIG),
+                &self.original_file.get_line(tokens[0].line_num),
+                tokens[0].clone(),
+                ErrorType::LogicalError,
+                "the `.ORIG` directive must be at the top of the file. To resolve this error, add `.ORIG x3000` at the top of the file.",
+                
+            ))
+        }
 
         // I am well aware of the spaghetti, thank you...
         for token in tokens {
@@ -76,7 +94,10 @@ impl SemanticChecker {
                             ErrorType::OperandError,
                             &format!("{} was expected, was not provided.", expected_operands[0].as_string()),
                         ));
-                    }                   
+                    }
+                    if self.is_end(directive) {
+                        end_encountered = true;
+                    }
                     curr_ins_token = token;
 
                     expected_operands = directive.get_expected_operands();
@@ -98,8 +119,11 @@ impl SemanticChecker {
                         continue;
                     }
                     
-                    match token.inner_token {
-                        TokenType::Label(_) => { /* ... */ },
+                    match expected_operands.front().unwrap() {
+                        OperandType::Label => { /* ... */ 
+                            println!("LABEL MATCHED!");
+                            self.used_labels.insert(token.original_match.clone(), token.clone());
+                        },
                         _ => {
                             self.errors.push(AsmError::from(
                                 String::from(CODE_RECEIVED_UNEXPECTED_LABEL),
@@ -114,7 +138,7 @@ impl SemanticChecker {
                 TokenType::Number(_) => 'number: {
                     if expected_operands.len() == 0 {
                         self.errors.push(AsmError::from(
-                            String::from(CODE_EXPECTED_NOTHING_RECEIVED_LABEL),
+                            String::from(CODE_EXPECTED_NOTHING_RECEIVED_NUMBER),
                             &self.original_file.get_line(token.line_num),
                             token.clone(),
                             ErrorType::OperandError,
@@ -123,8 +147,12 @@ impl SemanticChecker {
                         break 'number;
                     }
                     
-                    match expected_operands.front().unwrap() {
-                        OperandType::Imm | OperandType::RegOrImm => { /* ... */ },
+                    let expected: &OperandType = expected_operands.front().unwrap();
+
+                    match expected {
+                        OperandType::Imm | OperandType::RegOrImm => { /* ... */ 
+                            println!("NUMBER MATCHED!");
+                        },
                         _ => {
                             self.errors.push(AsmError::from(
                                 String::from(CODE_RECEIVED_UNEXPECTED_NUMBER),
@@ -149,7 +177,9 @@ impl SemanticChecker {
                     }
                     
                     match expected_operands.front().unwrap() {
-                        OperandType::Imm | OperandType::RegOrImm => { /* ... */ },
+                        OperandType::Reg | OperandType::RegOrImm => { /* ... */ 
+                            println!("REGISTER MATCHED!");
+                    },
                         _ => {
                             self.errors.push(AsmError::from(
                                 String::from(CODE_RECEIVED_UNEXPECTED_REGISTER),
@@ -173,7 +203,9 @@ impl SemanticChecker {
                         break 'string;
                     }
                     
-                    match expected_operands.front().unwrap() {
+                    let expected = expected_operands.front().unwrap();
+
+                    match expected {
                         OperandType::String => { /* ... */ },
                         _ => {
                             self.errors.push(AsmError::from(
@@ -195,9 +227,38 @@ impl SemanticChecker {
                 expected_operands.pop_front();
             }
         }
+
+        self.verify_all_used_labels_defined();
+
+        if !end_encountered {
+            self.errors.push(AsmError::new(
+                String::from(CODE_NO_END),
+                "",
+                0,
+                ErrorType::LogicalError,
+                "the given file does not contain a `.END` directive. The easiest way to resolve this is to create a new line at the bottom of the file that only contains `.END`.",
+            ))
+        }
     }
 
+    pub fn orig_at_top(&self, tokens: &Vec<Token>) -> bool {
+        match &tokens[0].inner_token {
+            TokenType::Directive(directive) => {
+                match directive {
+                    Directive::ORIG => true,
+                    _ => false,
+                }
+            },
+            _ => false,
+        }
+    }
 
+    pub fn is_end(&self, directive: &Directive) -> bool {
+        match directive {
+            Directive::END => true,
+            _ => false,
+        }
+    }
 
     pub fn define_label(&mut self, label: String, token: Token) {
         if self.symbol_table.contains_key(&label) {
@@ -213,13 +274,26 @@ impl SemanticChecker {
         }
         self.symbol_table.insert(label, token);
     }
+
+    fn verify_all_used_labels_defined(&mut self) {
+        for label in self.used_labels.keys() {
+            if !self.symbol_table.contains_key(label) {
+                self.errors.push(AsmError::from(
+                    String::from(CODE_USED_UNDEFINED_LABEL),
+                    &self.original_file.get_line(self.used_labels.get(label).unwrap().line_num),
+                    self.used_labels.get(label).unwrap().clone(),
+                    ErrorType::LabelError,
+                    &format!("the label `{}` was never defined within the file.", label),
+                ))
+            }
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{asm::lexer::*, asm::asm_error::*};
-
-    use super::SemanticChecker; 
+    use crate::asm::{asm_error::*, lexer::*};
+    use super::*;
 
     fn get_semantic_errors(file: &str) -> Vec<AsmError> {
         let mut lexer: Lexer = Lexer::new();
@@ -232,6 +306,10 @@ mod tests {
             panic!("COULD NOT SEMANTICALLY VERIFY FILE, BECAUSE ERRORS OCCURRED WHILE GENERATING TOKENS!!!");
         }
         
+        for (i, token) in tokens.iter().enumerate() {
+            println!("{}\t: {:?}", i, token);
+        }
+        
         let mut semantic_checker = SemanticChecker::new();
         semantic_checker.run(&tokens, file.to_string());
 
@@ -241,155 +319,219 @@ mod tests {
     #[test]
     fn test_redefine_label() {
         let file = r#"
+.ORIG x3000
 name ret
 name ret
+.END
         "#;
 
         let errors: Vec<AsmError> = get_semantic_errors(file);
 
-        for err in errors {
+        for err in errors.iter() {
             println!("{}", err.generate_msg());
         }
 
-        assert!(get_semantic_errors(file).len() > 0);
+        assert!(errors.len() > 0);
+        assert_eq!(errors[0].code, CODE_REDEFINED_LABEL);
+    }
+
+    #[test]
+    fn test_use_undefined_label() {
+        let file = r#"
+        .ORIG x3000
+        LEA R0, undefined_lol
+        .END
+        "#;
+
+        let errors: Vec<AsmError> = get_semantic_errors(file);
+
+        for err in errors.iter() {
+            println!("{}", err.generate_msg());
+        }
+
+        assert!(errors.len() > 0);
+        assert_eq!(errors[0].code, CODE_USED_UNDEFINED_LABEL);
     }
 
     #[test]
     fn test_instruction_on_same_line() {
         let file = r#"
+.ORIG x3000
 ADD R1, R2, RET
+.END
         "#;
 
         let errors: Vec<AsmError> = get_semantic_errors(file);
 
-        for err in errors {
+        for err in errors.iter() {
             println!("{}", err.generate_msg());
         }
 
         assert!(get_semantic_errors(file).len() > 0);
+        assert_eq!(errors[0].code, CODE_INS_NO_OPERAND);
     }
 
     #[test]
     fn test_unexpected_label() {
         let file = r#"
+.ORIG x3000
 Hello RET
 ADD R1, R2, Hello
+.END
         "#;
 
         let errors: Vec<AsmError> = get_semantic_errors(file);
 
-        for err in errors {
+        for err in errors.iter() {
             println!("{}", err.generate_msg());
         }
 
-        assert!(get_semantic_errors(file).len() > 0)
+        assert!(errors.len() > 0);
+        assert_eq!(errors[0].code, CODE_RECEIVED_UNEXPECTED_LABEL);
     }
     
     #[test]
     fn test_expected_nothing_but_received_label() {
         let file = r#"
+.ORIG x3000
 RET hello
+.END
         "#;
 
         let errors: Vec<AsmError> = get_semantic_errors(file);
 
-        for err in errors {
+        for err in errors.iter() {
             println!("{}", err.generate_msg());
         }
 
         assert!(get_semantic_errors(file).len() > 0);
+        assert_eq!(errors[0].code, CODE_EXPECTED_NOTHING_RECEIVED_LABEL);
     }
     
     
     #[test]
     fn test_expected_nothing_but_received_number() {
         let file = r#"
+.ORIG x3000
 RET #1
+.END
         "#;
 
         let errors: Vec<AsmError> = get_semantic_errors(file);
 
-        for err in errors {
+        for err in errors.iter() {
             println!("{}", err.generate_msg());
         }
 
-        assert!(get_semantic_errors(file).len() > 0)
+        assert!(get_semantic_errors(file).len() > 0);
+        assert_eq!(errors[0].code, CODE_EXPECTED_NOTHING_RECEIVED_NUMBER);
     }
     
     #[test]
     fn test_received_unexpected_number() {
         let file = r#"
+.ORIG x3000
 JSR #1
+.END
         "#;
 
         let errors: Vec<AsmError> = get_semantic_errors(file);
 
-        for err in errors {
+        for err in errors.iter() {
             println!("{}", err.generate_msg());
         }
 
-        assert!(get_semantic_errors(file).len() > 0)
+        assert!(get_semantic_errors(file).len() > 0);
+        assert_eq!(errors[0].code, CODE_RECEIVED_UNEXPECTED_NUMBER);
     }
     
     #[test]
     fn test_expected_nothing_but_received_register() {
         let file = r#"
+.ORIG x3000
 RET r1
+.END
         "#;
 
         let errors: Vec<AsmError> = get_semantic_errors(file);
 
-        for err in errors {
+        for err in errors.iter() {
             println!("{}", err.generate_msg());
         }
 
-        assert!(get_semantic_errors(file).len() > 0)
+        assert!(get_semantic_errors(file).len() > 0);
+        assert_eq!(errors[0].code, CODE_EXPECTED_NOTHING_RECEIVED_REGISTER);
+        
+        let file = r#"
+.ORIG x3000
+        BR          begin, r1    ; comment
+.END
+        "#;
+
+        let errors: Vec<AsmError> = get_semantic_errors(file);
+
+        for err in errors.iter() {
+            println!("{}", err.generate_msg());
+        }
+
+        assert!(get_semantic_errors(file).len() > 0);
+        assert_eq!(errors[0].code, CODE_EXPECTED_NOTHING_RECEIVED_REGISTER);
     }
     
     #[test]
     fn test_received_unexpected_register() {
         let file = r#"
+.ORIG x3000
 JSR r1
+.END
         "#;
 
         let errors: Vec<AsmError> = get_semantic_errors(file);
 
-        for err in errors {
+        for err in errors.iter() {
             println!("{}", err.generate_msg());
+            assert_eq!(err.code, String::from(CODE_RECEIVED_UNEXPECTED_REGISTER));
         }
 
-        assert!(get_semantic_errors(file).len() > 0)
+        assert!(get_semantic_errors(file).len() > 0);
+        assert_eq!(errors[0].code, CODE_RECEIVED_UNEXPECTED_REGISTER);
     
     }
 
     #[test]
     fn test_expected_nothing_but_received_string() {
         let file = r#"
+.ORIG x3000
 .END "This"
         "#; // strings can only SYNTACTICALLY be given to a directive
 
         let errors: Vec<AsmError> = get_semantic_errors(file);
 
-        for err in errors {
+        for err in errors.iter() {
             println!("{}", err.generate_msg());
+            assert_eq!(err.code, String::from(CODE_EXPECTED_NOTHING_RECEIVED_STRING));
         }
 
-        assert!(get_semantic_errors(file).len() > 0)
+        assert!(get_semantic_errors(file).len() > 0);
+        assert_eq!(errors[0].code, CODE_EXPECTED_NOTHING_RECEIVED_STRING);
     }
     
     #[test]
     fn test_received_unexpected_string() {
         let file = r#"
+.ORIG x3000
 .FILL "This"
+.END
         "#; // strings can only SYNTACTICALLY be given to a directive
 
         let errors: Vec<AsmError> = get_semantic_errors(file);
 
-        for err in errors {
+        for err in errors.iter() {
             println!("{}", err.generate_msg());
         }
 
-        assert!(get_semantic_errors(file).len() > 0)
+        assert!(get_semantic_errors(file).len() > 0);
+        assert_eq!(errors[0].code, CODE_RECEIVED_UNEXPECTED_STRING);
     }
  
 }

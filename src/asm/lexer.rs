@@ -28,7 +28,7 @@ impl Lexer {
             syntax_checker: SyntaxChecker::new(),
             curr_file: String::new(),
             file_as_chars: vec![],
-            curr_line_num: 0,
+            curr_line_num: 1,
             file_length: 0,
             file_position: 0,
             line_position: 0,
@@ -40,6 +40,7 @@ impl Lexer {
         self.file_length = input_file.len();
         self.file_as_chars = input_file.chars().collect();
         self.curr_file = input_file;
+        self.errors = vec![];
 
         let mut word_buffer: Vec<char> = vec![];
         let mut c: char;
@@ -59,16 +60,14 @@ impl Lexer {
                 continue;
             }
 
-            if c == ';' {
-                self.skip_comment();
-                continue;
-            }
-
             if (c.is_whitespace() || c == ';' || c == ',') && word_buffer.len() > 0 {
                 self.parse_word(word_buffer.iter().collect());
                 word_buffer.clear();
                 if c == '\n' {
                     self.next_line();
+                }
+                if c == ';' {
+                    self.skip_comment();
                 }
                 continue;
             }
@@ -77,6 +76,9 @@ impl Lexer {
                 self.next_line();
             }
 
+            if c == ';' {
+                self.skip_comment();
+            }
 
             if c.is_whitespace() && word_buffer.len() == 0 {
                 continue;
@@ -100,7 +102,7 @@ impl Lexer {
     }
     
     fn next_line(&mut self) {
-        self.line_position = 1;
+        self.line_position = 0;
         self.curr_line_num += 1;
     }
 
@@ -116,15 +118,15 @@ impl Lexer {
                 return;
             }
         }
+        self.next_line();
     }
 
     fn reset(&mut self) {
         self.token_stream = vec![];
-        self.errors = vec![];
         self.syntax_checker = SyntaxChecker::new();
         self.curr_file = String::new();
         self.file_as_chars = vec![];
-        self.curr_line_num = 0;
+        self.curr_line_num = 1;
         self.file_length = 0;
         self.file_position = 0;
         self.line_position = 0;
@@ -689,7 +691,6 @@ mod tests {
     fn test_comments() {
         let mut lexer = Lexer::new();
 
-
         assert_eq!(
             lexer.run(String::from("LA;"))[0].inner_token,
             TokenType::Label(String::from("LA"))
@@ -700,7 +701,7 @@ mod tests {
     fn test_invalid_escape_char() {
         let mut lexer = Lexer::new();
 
-        let _ = lexer.run(String::from(r#"hello \\."#));
+        let _ = lexer.run(String::from(r#" "hello \." "#));
         
         assert_eq!(lexer.errors[0].code, String::from(CODE_INVALID_ESCAPE_CHAR));
     } 

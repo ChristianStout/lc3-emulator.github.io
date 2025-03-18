@@ -54,7 +54,7 @@ fn fill_gap(text: &str, i: &usize, maybe_token: Option<&Token>) -> String {
     let start: usize = *i;
     let end;
     match maybe_token {
-        Some(token) => end = token.from,
+        Some(token) => end = token.from, // este tiene la culpa del error. Porque este index ya es solo de la linea. Pero, si tenemos que empezar se diferente linea? No lo puede hacer.
         None => end = text.len(),
     }
 

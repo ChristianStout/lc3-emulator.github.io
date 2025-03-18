@@ -1,4 +1,8 @@
-
-NOT_TOO_BIG  .FILL   xFFF6
-EVEN_THIS .FILL xFFFF
- hi r2, r1, r2
+; a|
+ hi;
+ .ORIG x3000
+;--+
+;--+
+FILE_ST LEA R0, PROMPT
+ PUTS
+ BR  begi

@@ -37,12 +37,12 @@ impl Asm {
             return vec![];
         }
 
-        self.semantic_checker.run(&tokens, input_file);
-
         for (i, token) in tokens.iter().enumerate() {
             println!("{}\t: {:?}", i, token);
         }
-
+        
+        self.semantic_checker.run(&tokens, input_file);
+        
         if self.semantic_checker.errors.len() > 0 {
             for error in self.semantic_checker.errors.iter() {
                 println!("{}", error.generate_msg());

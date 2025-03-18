@@ -5,6 +5,7 @@ pub enum ErrorType {
     SyntaxError,
     OperandError,
     LabelError,
+    LogicalError,
 }
 
 impl ErrorType {
@@ -13,6 +14,7 @@ impl ErrorType {
             Self::SyntaxError => return "SyntaxError",
             Self::OperandError => return "OperandError",
             Self::LabelError => return "LabelError",
+            Self::LogicalError => return "LogicalError",
         }
     }
 }
@@ -75,8 +77,10 @@ impl AsmError {
         if let Some((from, to)) = self.from_to {
             gen_msg += "\n\t";
             
-            for _ in 0..(from-1) {
-                gen_msg += " ";
+            if from > 0 {
+                for _ in 0..(from-1) {
+                    gen_msg += " ";
+                }   
             }
             for _ in 0..to {
                 gen_msg += "^";
