@@ -158,6 +158,17 @@ impl OpcodeIns {
 
         return OpcodeIns::Br(n, z, p);
     }
+    
+    pub fn get_immediate_value_width(&self) -> Option<i32> {
+        match self {
+            OpcodeIns::Add | OpcodeIns::And => Some(5),
+            OpcodeIns::Ldr | OpcodeIns::Str => Some(6),
+            OpcodeIns::Br(_,_,_) | OpcodeIns::Ld | OpcodeIns::Ldi => Some(9),
+            OpcodeIns::Lea | OpcodeIns::St | OpcodeIns::Sti => Some(9),
+            OpcodeIns::Jsr => Some(11),
+            _ => None,
+        }
+    }
 }
 
 
@@ -202,7 +213,7 @@ mod tests {
     }
 
     #[test]
-    fn test_get_ins_from_str_case_sesitivity() {
+    fn test_get_ins_from_str_case_sensitivity() {
         assert!(OpcodeIns::from("add") == OpcodeIns::Add);
         assert!(OpcodeIns::from("Add") == OpcodeIns::Add);
         assert!(OpcodeIns::from("ADd") == OpcodeIns::Add);

@@ -6,6 +6,7 @@ pub enum ErrorType {
     OperandError,
     LabelError,
     LogicalError,
+    BoundError,
 }
 
 impl ErrorType {
@@ -15,6 +16,7 @@ impl ErrorType {
             Self::OperandError => return "OperandError",
             Self::LabelError => return "LabelError",
             Self::LogicalError => return "LogicalError",
+            Self::BoundError => "BoundError",
         }
     }
 }

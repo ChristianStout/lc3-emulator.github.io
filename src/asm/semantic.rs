@@ -1,5 +1,5 @@
 use std::{collections::{HashMap, VecDeque}, hash::Hash};
-use super::{asm_error::{AsmError, ErrorType}, asm_ins::OperandType, directive::{self, Directive}};
+use super::{asm_error::{AsmError, ErrorType}, asm_ins::OperandType, directive::{self, Directive}, token};
 use super::token::*;
 use super::file::AsmFile;
 
@@ -18,6 +18,7 @@ const CODE_EXPECTED_NOTHING_RECEIVED_STRING: &'static str = "SM011";
 const CODE_NO_ORIG: &'static str = "SM012";
 const CODE_NO_END: &'static str = "SM013";
 const CODE_USED_UNDEFINED_LABEL: &'static str = "SM014";
+const CODE_NUMBER_OUT_OF_BOUNDS: &'static str = "SM015";
 
 #[allow(dead_code)]
 pub struct SemanticChecker {
@@ -152,6 +153,7 @@ impl SemanticChecker {
                     match expected {
                         OperandType::Imm | OperandType::RegOrImm => { /* ... */ 
                             println!("NUMBER MATCHED!");
+                            self.verify_immediate_value_in_range(curr_ins_token, token);
                         },
                         _ => {
                             self.errors.push(AsmError::from(
@@ -288,6 +290,63 @@ impl SemanticChecker {
             }
         }
     }
+    
+    fn verify_immediate_value_in_range(&mut self, current_instruction: &Token, value: &Token) {
+        let mut maybe_width: Option<i32> = None;
+
+        match &current_instruction.inner_token {
+            TokenType::Instruction(opcode_ins) => {
+                maybe_width = opcode_ins.get_immediate_value_width();
+            },
+            TokenType::Directive(_) => {
+                return;
+            }
+            _ => { },
+        }
+        
+        let width: i32 = maybe_width
+            .expect("Somehow we are trying to verify that a value is within range when the instruction does not take in a value. THIS SHOULD NOT BE POSSIBLE!");
+        
+        let mut in_range = false;
+
+        match &value.inner_token {
+            TokenType::Number(number) => {
+                let number = *number as i32;
+                let (lower, upper) = self.get_twos_complement_range(width);
+                
+                if number < lower || number > upper {
+                    self.errors.push(AsmError::from(
+                        String::from(CODE_NUMBER_OUT_OF_BOUNDS),
+                        &self.original_file.get_line(value.line_num),
+                        value.clone(),
+                        ErrorType::BoundError,
+                        &format!(
+                            "the number `{}` (or `{}`) is out of the bounds of `{}`, which takes a(n) {}-bit immediate value. Therefore, the accepted range is `[{}, {}]`
+                            REMEMBER: The LC-3 takes only accepts 2's complement values as immediate values.",
+                            value.original_match,
+                            number,
+                            current_instruction.original_match,
+                            width,
+                            lower,
+                            upper,
+                        )
+                    ));
+                }
+            },
+            TokenType::Label(_label) => {
+
+            },
+            _ => {
+                unreachable!();
+            }
+        }
+    }
+
+    fn get_twos_complement_range(&self, width: i32) -> (i32, i32) {
+        let upper = (width - 1).pow(2);
+        let lower = -((width - 1).pow(2) + 1);
+        return (lower, upper);
+    }
 }
 
 #[cfg(test)]
@@ -423,7 +482,7 @@ RET #1
             println!("{}", err.generate_msg());
         }
 
-        assert!(get_semantic_errors(file).len() > 0);
+        assert!(errors.len() > 0);
         assert_eq!(errors[0].code, CODE_EXPECTED_NOTHING_RECEIVED_NUMBER);
     }
     
@@ -534,4 +593,21 @@ JSR r1
         assert_eq!(errors[0].code, CODE_RECEIVED_UNEXPECTED_STRING);
     }
  
+    #[test]
+    fn test_value_out_bounds_for_add() {
+        let file = r#"
+.ORIG x3000
+ADD R0, R2, x3000
+.END
+        "#; // strings can only SYNTACTICALLY be given to a directive
+
+        let errors: Vec<AsmError> = get_semantic_errors(file);
+
+        for err in errors.iter() {
+            println!("{}", err.generate_msg());
+        }
+
+        assert!(get_semantic_errors(file).len() > 0);
+        assert_eq!(errors[0].code, CODE_NUMBER_OUT_OF_BOUNDS);
+    }
 }
