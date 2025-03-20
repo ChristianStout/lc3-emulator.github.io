@@ -1,7 +1,9 @@
-use std::{collections::{HashMap, VecDeque}, hash::Hash};
-use super::{asm_error::{AsmError, ErrorType}, asm_ins::OperandType, directive::{self, Directive}, token};
+use std::{collections::{HashMap, VecDeque}};
+use super::{asm_error::{AsmError, ErrorType}, asm_ins::OperandType, directive::Directive, token};
 use super::token::*;
 use super::file::AsmFile;
+
+const ARCH_LIMIT: i32 = 16;
 
 const CODE_INS_NO_OPERAND: &'static str = "SM000";
 const CODE_RECEIVED_UNEXPECTED_INS: &'static str = "SM001";
@@ -19,13 +21,16 @@ const CODE_NO_ORIG: &'static str = "SM012";
 const CODE_NO_END: &'static str = "SM013";
 const CODE_USED_UNDEFINED_LABEL: &'static str = "SM014";
 const CODE_NUMBER_OUT_OF_BOUNDS: &'static str = "SM015";
+const CODE_ORIG_NOT_GIVEN_NUMBER: &'static str = "SM016";
+const CODE_FILE_NOT_VALID: &'static str = "SM017";
 
 #[allow(dead_code)]
 pub struct SemanticChecker {
-    pub symbol_table: HashMap<String, Token>,
+    pub symbol_table: HashMap<String, (i32, Token)>,
     pub errors: Vec<AsmError>,
     original_file: AsmFile,
     used_labels: HashMap<String, Token>,
+    memory_location: i32,
 }
 
 #[allow(dead_code)]
@@ -36,6 +41,7 @@ impl SemanticChecker {
             errors: vec![],
             original_file: AsmFile::new("".to_string()),
             used_labels: HashMap::new(),
+            memory_location: 0,
         }
     }
     
@@ -46,6 +52,10 @@ impl SemanticChecker {
         let mut curr_ins_token: &Token = &Token::get_useless_token();
         let mut end_encountered = false;
         
+        // TODO: handle empty token vector
+        // TODO: handle if orig contains a label
+        // TODO: move orig handling to separate function
+
         if !self.orig_at_top(&tokens) {
             self.errors.push(AsmError::from(
                 String::from(CODE_NO_ORIG),
@@ -53,11 +63,22 @@ impl SemanticChecker {
                 tokens[0].clone(),
                 ErrorType::LogicalError,
                 "the `.ORIG` directive must be at the top of the file. To resolve this error, add `.ORIG x3000` at the top of the file.",
-                
+            ));
+            return;
+        } else if tokens.len() > 1 {
+            self.set_memory_orig(&tokens);
+        } else {
+            self.errors.push(AsmError::new(
+                String::from(CODE_FILE_NOT_VALID),
+                &self.original_file.get_line(tokens[0].line_num),
+                tokens[0].line_num as i32,
+                ErrorType::LogicalError,
+                "The provided file is not valid, because it only contains a `.ORIG` directive without arguments, and no `.END` directive",
             ))
         }
 
         // I am well aware of the spaghetti, thank you...
+        // TODO: move necessary variables to object variables, and move match and match cases to separate functions
         for token in tokens {
             match &token.inner_token {
                 TokenType::Instruction(op_ins) => {
@@ -81,6 +102,7 @@ impl SemanticChecker {
                         ));
                     }                   
                     curr_ins_token = token;
+                    self.memory_location += 1;
 
                     expected_operands = op_ins.get_expected_operands();
                     continue;
@@ -100,7 +122,9 @@ impl SemanticChecker {
                         end_encountered = true;
                     }
                     curr_ins_token = token;
-
+                    // TODO: figure how how I will increment memory for directives.
+                    // Some do, some don't, .STRINGZ could a little or a lot.
+                    
                     expected_operands = directive.get_expected_operands();
                     continue
                 }
@@ -255,6 +279,24 @@ impl SemanticChecker {
         }
     }
 
+    pub fn set_memory_orig(&mut self, tokens: &Vec<Token>) {
+        match tokens[1].inner_token {
+            TokenType::Number(location) => {
+                self.memory_location = location as i32;
+            },
+            _ => {
+                AsmError::from(
+                    String::from(CODE_ORIG_NOT_GIVEN_NUMBER),
+                    &self.original_file.get_line(tokens[1].line_num),
+                    tokens[1].clone(),
+                    ErrorType::OperandError,
+                    &format!("{} must be given a number as an immediate value", tokens[1].original_match),
+                );
+            }
+        }
+        
+    }
+
     pub fn is_end(&self, directive: &Directive) -> bool {
         match directive {
             Directive::END => true,
@@ -264,7 +306,7 @@ impl SemanticChecker {
 
     pub fn define_label(&mut self, label: String, token: Token) {
         if self.symbol_table.contains_key(&label) {
-            let other = self.symbol_table.get(&label).unwrap();
+            let (_, other) = self.symbol_table.get(&label).unwrap();
             self.errors.push(AsmError::from(
                 String::from(CODE_REDEFINED_LABEL),
                 &self.original_file.get_line(token.line_num),
@@ -274,7 +316,7 @@ impl SemanticChecker {
             ));
             return;
         }
-        self.symbol_table.insert(label, token);
+        self.symbol_table.insert(label, (self.memory_location, token));
     }
 
     fn verify_all_used_labels_defined(&mut self) {
@@ -292,21 +334,21 @@ impl SemanticChecker {
     }
     
     fn verify_immediate_value_in_range(&mut self, current_instruction: &Token, value: &Token) {
-        let mut maybe_width: Option<i32> = None;
+        let width: i32;
 
         match &current_instruction.inner_token {
             TokenType::Instruction(opcode_ins) => {
-                maybe_width = opcode_ins.get_immediate_value_width();
+                width = opcode_ins.get_immediate_value_width()
+                    .expect("Somehow we are trying to verify that a value is within range when the instruction does not take in a value. THIS SHOULD NOT BE POSSIBLE!");
             },
             TokenType::Directive(_) => {
-                return;
+                width = ARCH_LIMIT; // This is because directives only store information in memory. They don't have limits, other than architecture.
             }
-            _ => { },
+            _ => {
+                panic!("semantic::SemanticChecker::verify_value_in_range(): A non-instruction/directive was given as a token that can take an immediate value");
+            },
         }
-        
-        let width: i32 = maybe_width
-            .expect("Somehow we are trying to verify that a value is within range when the instruction does not take in a value. THIS SHOULD NOT BE POSSIBLE!");
-        
+         
         let mut in_range = false;
 
         match &value.inner_token {
@@ -322,7 +364,7 @@ impl SemanticChecker {
                         ErrorType::BoundError,
                         &format!(
                             "the number `{}` (or `{}`) is out of the bounds of `{}`, which takes a(n) {}-bit immediate value. Therefore, the accepted range is `[{}, {}]`
-                            REMEMBER: The LC-3 takes only accepts 2's complement values as immediate values.",
+        REMEMBER: The LC-3 takes only accepts 2's complement values as immediate values.",
                             value.original_match,
                             number,
                             current_instruction.original_match,
@@ -343,8 +385,8 @@ impl SemanticChecker {
     }
 
     fn get_twos_complement_range(&self, width: i32) -> (i32, i32) {
-        let upper = (width - 1).pow(2);
-        let lower = -((width - 1).pow(2) + 1);
+        let upper = 2_i32.pow(width as u32 - 1) - 1;
+        let lower = -(2_i32.pow(width as u32 - 1));
         return (lower, upper);
     }
 }
@@ -453,6 +495,7 @@ ADD R1, R2, Hello
     fn test_expected_nothing_but_received_label() {
         let file = r#"
 .ORIG x3000
+Hello .FILL #0
 RET hello
 .END
         "#;
@@ -463,7 +506,7 @@ RET hello
             println!("{}", err.generate_msg());
         }
 
-        assert!(get_semantic_errors(file).len() > 0);
+        assert!(errors.len() > 0);
         assert_eq!(errors[0].code, CODE_EXPECTED_NOTHING_RECEIVED_LABEL);
     }
     
@@ -562,7 +605,7 @@ JSR r1
         let file = r#"
 .ORIG x3000
 .END "This"
-        "#; // strings can only SYNTACTICALLY be given to a directive
+        "#;
 
         let errors: Vec<AsmError> = get_semantic_errors(file);
 
@@ -581,7 +624,7 @@ JSR r1
 .ORIG x3000
 .FILL "This"
 .END
-        "#; // strings can only SYNTACTICALLY be given to a directive
+        "#;
 
         let errors: Vec<AsmError> = get_semantic_errors(file);
 
@@ -599,7 +642,7 @@ JSR r1
 .ORIG x3000
 ADD R0, R2, x3000
 .END
-        "#; // strings can only SYNTACTICALLY be given to a directive
+        "#;
 
         let errors: Vec<AsmError> = get_semantic_errors(file);
 
@@ -609,5 +652,26 @@ ADD R0, R2, x3000
 
         assert!(get_semantic_errors(file).len() > 0);
         assert_eq!(errors[0].code, CODE_NUMBER_OUT_OF_BOUNDS);
+    let file = r#"
+.ORIG x3000
+ADD R0, R2, #16
+.END
+        "#;
+
+        let errors: Vec<AsmError> = get_semantic_errors(file);
+
+        for err in errors.iter() {
+            println!("{}", err.generate_msg());
+        }
+
+        assert!(get_semantic_errors(file).len() > 0);
+        assert_eq!(errors[0].code, CODE_NUMBER_OUT_OF_BOUNDS)
+    }
+
+    #[test]
+    fn test_get_twos_complement_range() {
+        let sm = SemanticChecker::new();
+
+        assert_eq!(sm.get_twos_complement_range(16), (i16::MIN as i32, i16::MAX as i32));
     }
 }
