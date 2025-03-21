@@ -78,6 +78,7 @@ impl Lexer {
 
             if c == ';' {
                 self.skip_comment();
+                continue;
             }
 
             if c.is_whitespace() && word_buffer.len() == 0 {
