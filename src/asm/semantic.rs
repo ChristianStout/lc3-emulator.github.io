@@ -1,4 +1,4 @@
-use std::{collections::{HashMap, VecDeque}};
+use std::collections::{HashMap, VecDeque};
 use super::{asm_error::{AsmError, ErrorType}, asm_ins::OperandType, directive::Directive, token};
 use super::token::*;
 use super::file::AsmFile;
@@ -53,29 +53,6 @@ impl SemanticChecker {
         let mut end_encountered = false;
         
         // TODO: handle empty token vector
-        // TODO: handle if orig contains a label
-        // TODO: move orig handling to separate function
-
-        if !self.orig_at_top(&tokens) {
-            self.errors.push(AsmError::from(
-                String::from(CODE_NO_ORIG),
-                &self.original_file.get_line(tokens[0].line_num),
-                tokens[0].clone(),
-                ErrorType::LogicalError,
-                "the `.ORIG` directive must be at the top of the file. To resolve this error, add `.ORIG x3000` at the top of the file.",
-            ));
-            return;
-        } else if tokens.len() > 1 {
-            self.set_memory_orig(&tokens);
-        } else {
-            self.errors.push(AsmError::new(
-                String::from(CODE_FILE_NOT_VALID),
-                &self.original_file.get_line(tokens[0].line_num),
-                tokens[0].line_num as i32,
-                ErrorType::LogicalError,
-                "The provided file is not valid, because it only contains a `.ORIG` directive without arguments, and no `.END` directive",
-            ))
-        }
 
         // I am well aware of the spaghetti, thank you...
         // TODO: move necessary variables to object variables, and move match and match cases to separate functions
@@ -265,6 +242,31 @@ impl SemanticChecker {
                 "the given file does not contain a `.END` directive. The easiest way to resolve this is to create a new line at the bottom of the file that only contains `.END`.",
             ))
         }
+    }
+
+    pub fn handle_orig(&mut self, tokens: &Vec<Token>) {
+        // TODO: handle if orig contains a label
+        
+        if !self.orig_at_top(&tokens) {
+            self.errors.push(AsmError::from(
+                String::from(CODE_NO_ORIG),
+                &self.original_file.get_line(tokens[0].line_num),
+                tokens[0].clone(),
+                ErrorType::LogicalError,
+                "the `.ORIG` directive must be at the top of the file. To resolve this error, add `.ORIG x3000` at the top of the file.",
+            ));
+            return;
+        } else if tokens.len() > 1 {
+            self.set_memory_orig(&tokens);
+        } else {
+            self.errors.push(AsmError::new(
+                String::from(CODE_FILE_NOT_VALID),
+                &self.original_file.get_line(tokens[0].line_num),
+                tokens[0].line_num as i32,
+                ErrorType::LogicalError,
+                "The provided file is not valid, because it only contains a `.ORIG` directive without arguments, and no `.END` directive",
+            ))
+        }       
     }
 
     pub fn orig_at_top(&self, tokens: &Vec<Token>) -> bool {
