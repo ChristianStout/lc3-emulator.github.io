@@ -31,6 +31,11 @@ pub struct SemanticChecker {
     original_file: AsmFile,
     used_labels: HashMap<String, Token>,
     memory_location: i32,
+
+    // refactor items
+    expected_operands: VecDeque<OperandType>,
+    curr_ins_token: Token,
+    end_encountered: bool,
 }
 
 #[allow(dead_code)]
@@ -42,198 +47,27 @@ impl SemanticChecker {
             original_file: AsmFile::new("".to_string()),
             used_labels: HashMap::new(),
             memory_location: 0,
+            expected_operands: VecDeque::new(),
+            curr_ins_token: Token::get_useless_token(),
+            end_encountered: false,
         }
     }
     
     #[allow(unused_variables)]
     pub fn run(&mut self, tokens: &Vec<Token>, file: String) {
-        self.original_file = AsmFile::new(file);
-        let mut expected_operands: VecDeque<OperandType> = vec![].into_iter().collect();
-        let mut curr_ins_token: &Token = &Token::get_useless_token();
-        let mut end_encountered = false;
+        self.original_file = AsmFile::new(file);;
         
         // TODO: handle empty token vector
 
         // I am well aware of the spaghetti, thank you...
         // TODO: move necessary variables to object variables, and move match and match cases to separate functions
         for token in tokens {
-            match &token.inner_token {
-                TokenType::Instruction(op_ins) => {
-                    if token.line_num == curr_ins_token.line_num {
-                        self.errors.push(AsmError::from(
-                            String::from(CODE_INS_NO_OPERAND),
-                            &self.original_file.get_line(token.line_num),
-                            token.clone(),
-                            ErrorType::OperandError,
-                            "an instruction cannot be an operand. Instructions MUST be separated by line.",
-                        ));
-                    }
- 
-                    if expected_operands.len() > 0 {
-                        self.errors.push(AsmError::from(
-                            String::from(CODE_RECEIVED_UNEXPECTED_INS),
-                            &self.original_file.get_line(token.line_num),
-                            token.clone(),
-                            ErrorType::OperandError,
-                            &format!("{} was expected, but received an instruction instead.", expected_operands[0].as_string()),
-                        ));
-                    }                   
-                    curr_ins_token = token;
-                    self.memory_location += 1;
-
-                    expected_operands = op_ins.get_expected_operands();
-                    continue;
-                }
-                TokenType::Directive(directive) => {
-                    if expected_operands.len() > 0 {
-                        // Syntactically, it is not possible to get a directive as an argument, so an instruction must have terminated early
-                        self.errors.push(AsmError::from(
-                            String::from(CODE_DIR_WRONG_OPERAND),
-                            &self.original_file.get_line(curr_ins_token.line_num),
-                            curr_ins_token.clone(),
-                            ErrorType::OperandError,
-                            &format!("{} was expected, was not provided.", expected_operands[0].as_string()),
-                        ));
-                    }
-                    if self.is_end(directive) {
-                        end_encountered = true;
-                    }
-                    curr_ins_token = token;
-                    // TODO: figure how how I will increment memory for directives.
-                    // Some do, some don't, .STRINGZ could a little or a lot.
-                    
-                    expected_operands = directive.get_expected_operands();
-                    continue
-                }
-                TokenType::Label(label) => {
-                    if expected_operands.len() == 0 {
-                        if token.line_num == curr_ins_token.line_num {
-                            self.errors.push(AsmError::from(
-                                String::from(CODE_EXPECTED_NOTHING_RECEIVED_LABEL),
-                                &self.original_file.get_line(token.line_num),
-                                token.clone(),
-                                ErrorType::OperandError,
-                                "no operands were expected, but received a label instead."
-                            ));
-                            continue;
-                        }
-                        self.define_label(label.clone(), token.clone());
-                        continue;
-                    }
-                    
-                    match expected_operands.front().unwrap() {
-                        OperandType::Label => { /* ... */ 
-                            println!("LABEL MATCHED!");
-                            self.used_labels.insert(token.original_match.clone(), token.clone());
-                        },
-                        _ => {
-                            self.errors.push(AsmError::from(
-                                String::from(CODE_RECEIVED_UNEXPECTED_LABEL),
-                                &self.original_file.get_line(token.line_num),
-                                token.clone(),
-                                ErrorType::OperandError,
-                                &format!("{} was expected, but received a label instead.", expected_operands[0].as_string()),
-                            ));
-                        }
-                    }
-                },
-                TokenType::Number(_) => 'number: {
-                    if expected_operands.len() == 0 {
-                        self.errors.push(AsmError::from(
-                            String::from(CODE_EXPECTED_NOTHING_RECEIVED_NUMBER),
-                            &self.original_file.get_line(token.line_num),
-                            token.clone(),
-                            ErrorType::OperandError,
-                            &format!("no operands were expected, but received a number instead."),
-                        ));
-                        break 'number;
-                    }
-                    
-                    let expected: &OperandType = expected_operands.front().unwrap();
-
-                    match expected {
-                        OperandType::Imm | OperandType::RegOrImm => { /* ... */ 
-                            println!("NUMBER MATCHED!");
-                            self.verify_immediate_value_in_range(curr_ins_token, token);
-                        },
-                        _ => {
-                            self.errors.push(AsmError::from(
-                                String::from(CODE_RECEIVED_UNEXPECTED_NUMBER),
-                                &self.original_file.get_line(token.line_num),
-                                token.clone(),
-                                ErrorType::OperandError,
-                                &format!("{} was expected, but received a number instead.", expected_operands[0].as_string()),
-                            ));
-                        }
-                    }
-                }
-                TokenType::Register(_) => 'number: {
-                    if expected_operands.len() == 0 {
-                        self.errors.push(AsmError::from(
-                            String::from(CODE_EXPECTED_NOTHING_RECEIVED_REGISTER),
-                            &self.original_file.get_line(token.line_num),
-                            token.clone(),
-                            ErrorType::OperandError,
-                            &format!("no operands were expected, but received a register instead."),
-                        ));
-                        break 'number;
-                    }
-                    
-                    match expected_operands.front().unwrap() {
-                        OperandType::Reg | OperandType::RegOrImm => { /* ... */ 
-                            println!("REGISTER MATCHED!");
-                    },
-                        _ => {
-                            self.errors.push(AsmError::from(
-                                String::from(CODE_RECEIVED_UNEXPECTED_REGISTER),
-                                &self.original_file.get_line(token.line_num),
-                                token.clone(),
-                                ErrorType::OperandError,
-                                &format!("{} was expected, but received a register instead.", expected_operands[0].as_string()),
-                            ));
-                        }
-                    }
-                }
-                TokenType::String(_) => 'string: {
-                    if expected_operands.len() == 0 {
-                        self.errors.push(AsmError::from(
-                            String::from(CODE_EXPECTED_NOTHING_RECEIVED_STRING),
-                            &self.original_file.get_line(token.line_num),
-                            token.clone(),
-                            ErrorType::OperandError,
-                            &format!("no operands were expected, but received a string instead."),
-                        ));
-                        break 'string;
-                    }
-                    
-                    let expected = expected_operands.front().unwrap();
-
-                    match expected {
-                        OperandType::String => { /* ... */ },
-                        _ => {
-                            self.errors.push(AsmError::from(
-                                String::from(CODE_RECEIVED_UNEXPECTED_STRING),
-                                &self.original_file.get_line(token.line_num),
-                                token.clone(),
-                                ErrorType::OperandError,
-                                &format!("{} was expected, but received a string instead.", expected_operands[0].as_string()),
-                            ));
-                        }
-                    }
-                }
-                _ => {
-                    // AsmError::new()
-                }
-            }
-
-            if expected_operands.len() > 0 {
-                expected_operands.pop_front();
-            }
+            self.handle_token(token);
         }
 
         self.verify_all_used_labels_defined();
 
-        if !end_encountered {
+        if !self.end_encountered {
             self.errors.push(AsmError::new(
                 String::from(CODE_NO_END),
                 "",
@@ -244,9 +78,185 @@ impl SemanticChecker {
         }
     }
 
+    pub fn handle_token(&mut self, token: &Token) {
+        match &token.inner_token {
+            TokenType::Instruction(op_ins) => {
+                if token.line_num == self.curr_ins_token.line_num {
+                    self.errors.push(AsmError::from(
+                        String::from(CODE_INS_NO_OPERAND),
+                        &self.original_file.get_line(token.line_num),
+                        token.clone(),
+                        ErrorType::OperandError,
+                        "an instruction cannot be an operand. Instructions MUST be separated by line.",
+                    ));
+                }
+
+                if self.expected_operands.len() > 0 {
+                    self.errors.push(AsmError::from(
+                        String::from(CODE_RECEIVED_UNEXPECTED_INS),
+                        &self.original_file.get_line(token.line_num),
+                        token.clone(),
+                        ErrorType::OperandError,
+                        &format!("{} was expected, but received an instruction instead.", self.expected_operands[0].as_string()),
+                    ));
+                }                   
+                self.curr_ins_token = token.clone(); // These should be optimized out. In errors they are acceptable, but we should not take a performance hit to valid code.
+                self.memory_location += 1;
+
+                self.expected_operands = op_ins.get_expected_operands();
+            }
+            TokenType::Directive(directive) => {
+                if self.expected_operands.len() > 0 {
+                    // Syntactically, it is not possible to get a directive as an argument, so an instruction must have terminated early
+                    self.errors.push(AsmError::from(
+                        String::from(CODE_DIR_WRONG_OPERAND),
+                        &self.original_file.get_line(self.curr_ins_token.line_num),
+                        self.curr_ins_token.clone(),
+                        ErrorType::OperandError,
+                        &format!("{} was expected, was not provided.", self.expected_operands[0].as_string()),
+                    ));
+                }
+                if self.is_end(directive) {
+                    self.end_encountered = true;
+                }
+                self.curr_ins_token = token.clone();
+                // TODO: figure how how I will increment memory for directives.
+                // Some do, some don't, .STRINGZ could a little or a lot.
+                
+                self.expected_operands = directive.get_expected_operands();
+            }
+            TokenType::Label(label) => {
+               self.handle_label(token, label);
+            },
+            TokenType::Number(_) => 'number: {
+                if self.expected_operands.len() == 0 {
+                    self.errors.push(AsmError::from(
+                        String::from(CODE_EXPECTED_NOTHING_RECEIVED_NUMBER),
+                        &self.original_file.get_line(token.line_num),
+                        token.clone(),
+                        ErrorType::OperandError,
+                        &format!("no operands were expected, but received a number instead."),
+                    ));
+                    break 'number;
+                }
+                
+                let expected: OperandType = self.expected_operands.pop_front().unwrap();
+
+                match expected {
+                    OperandType::Imm | OperandType::RegOrImm => { /* ... */ 
+                        println!("NUMBER MATCHED!");
+                        self.verify_immediate_value_in_range(token);
+                    },
+                    _ => {
+                        self.errors.push(AsmError::from(
+                            String::from(CODE_RECEIVED_UNEXPECTED_NUMBER),
+                            &self.original_file.get_line(token.line_num),
+                            token.clone(),
+                            ErrorType::OperandError,
+                            &format!("{} was expected, but received a number instead.", expected.as_string()),
+                        ));
+                    }
+                }
+            }
+            TokenType::Register(_) => 'number: {
+                if self.expected_operands.len() == 0 {
+                    self.errors.push(AsmError::from(
+                        String::from(CODE_EXPECTED_NOTHING_RECEIVED_REGISTER),
+                        &self.original_file.get_line(token.line_num),
+                        token.clone(),
+                        ErrorType::OperandError,
+                        &format!("no operands were expected, but received a register instead."),
+                    ));
+                    break 'number;
+                }
+                
+                let expected = self.expected_operands.pop_front().unwrap();
+                match expected {
+                    OperandType::Reg | OperandType::RegOrImm => { /* ... */ 
+                        println!("REGISTER MATCHED!");
+                },
+                    _ => {
+                        self.errors.push(AsmError::from(
+                            String::from(CODE_RECEIVED_UNEXPECTED_REGISTER),
+                            &self.original_file.get_line(token.line_num),
+                            token.clone(),
+                            ErrorType::OperandError,
+                            &format!("{} was expected, but received a register instead.", expected.as_string()),
+                        ));
+                    }
+                }
+            }
+            TokenType::String(_) => 'string: {
+                if self.expected_operands.len() == 0 {
+                    self.errors.push(AsmError::from(
+                        String::from(CODE_EXPECTED_NOTHING_RECEIVED_STRING),
+                        &self.original_file.get_line(token.line_num),
+                        token.clone(),
+                        ErrorType::OperandError,
+                        &format!("no operands were expected, but received a string instead."),
+                    ));
+                    break 'string;
+                }
+                
+                let expected = self.expected_operands.pop_front().unwrap();
+
+                match expected {
+                    OperandType::String => { /* ... */ },
+                    _ => {
+                        self.errors.push(AsmError::from(
+                            String::from(CODE_RECEIVED_UNEXPECTED_STRING),
+                            &self.original_file.get_line(token.line_num),
+                            token.clone(),
+                            ErrorType::OperandError,
+                            &format!("{} was expected, but received a string instead.", expected.as_string()),
+                        ));
+                    }
+                }
+            }
+            _ => {
+                // AsmError::new()
+            }
+        }
+    }
+
+    pub fn handle_label(&mut self, token: &Token, label: &String) {
+        if self.expected_operands.len() == 0 {
+            if token.line_num == self.curr_ins_token.line_num {
+                self.errors.push(AsmError::from(
+                    String::from(CODE_EXPECTED_NOTHING_RECEIVED_LABEL),
+                    &self.original_file.get_line(token.line_num),
+                    token.clone(),
+                    ErrorType::OperandError,
+                    "no operands were expected, but received a label instead."
+                ));
+                return;
+            }
+            self.define_label(label.clone(), token.clone());
+            return;
+        }
+        
+        let expected = self.expected_operands.pop_front().unwrap();
+
+        match expected {
+            OperandType::Label => { /* ... */ 
+                println!("LABEL MATCHED!");
+                self.used_labels.insert(token.original_match.clone(), token.clone());
+            },
+            _ => {
+                self.errors.push(AsmError::from(
+                    String::from(CODE_RECEIVED_UNEXPECTED_LABEL),
+                    &self.original_file.get_line(token.line_num),
+                    token.clone(),
+                    ErrorType::OperandError,
+                    &format!("{} was expected, but received a label instead.", expected.as_string()),
+                ));
+            }
+        }
+    }
+
     pub fn handle_orig(&mut self, tokens: &Vec<Token>) {
         // TODO: handle if orig contains a label
-        
+
         if !self.orig_at_top(&tokens) {
             self.errors.push(AsmError::from(
                 String::from(CODE_NO_ORIG),
@@ -322,6 +332,8 @@ impl SemanticChecker {
     }
 
     fn verify_all_used_labels_defined(&mut self) {
+        println!("USED LABELS = {:?}", self.used_labels);
+        println!("\n\nDEFINED LABELS = {:?}", self.symbol_table);
         for label in self.used_labels.keys() {
             if !self.symbol_table.contains_key(label) {
                 self.errors.push(AsmError::from(
@@ -335,10 +347,10 @@ impl SemanticChecker {
         }
     }
     
-    fn verify_immediate_value_in_range(&mut self, current_instruction: &Token, value: &Token) {
+    fn verify_immediate_value_in_range(&mut self, value: &Token) {
         let width: i32;
 
-        match &current_instruction.inner_token {
+        match &self.curr_ins_token.inner_token {
             TokenType::Instruction(opcode_ins) => {
                 width = opcode_ins.get_immediate_value_width()
                     .expect("Somehow we are trying to verify that a value is within range when the instruction does not take in a value. THIS SHOULD NOT BE POSSIBLE!");
@@ -351,8 +363,6 @@ impl SemanticChecker {
             },
         }
          
-        let mut in_range = false;
-
         match &value.inner_token {
             TokenType::Number(number) => {
                 let number = *number as i32;
@@ -369,7 +379,7 @@ impl SemanticChecker {
         REMEMBER: The LC-3 takes only accepts 2's complement values as immediate values.",
                             value.original_match,
                             number,
-                            current_instruction.original_match,
+                            self.curr_ins_token.original_match,
                             width,
                             lower,
                             upper,
@@ -545,7 +555,7 @@ JSR #1
             println!("{}", err.generate_msg());
         }
 
-        assert!(get_semantic_errors(file).len() > 0);
+        assert!(errors.len() > 0);
         assert_eq!(errors[0].code, CODE_RECEIVED_UNEXPECTED_NUMBER);
     }
     
