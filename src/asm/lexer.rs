@@ -705,6 +705,20 @@ mod tests {
         let _ = lexer.run(String::from(r#" "hello \." "#));
         
         assert_eq!(lexer.errors[0].code, String::from(CODE_INVALID_ESCAPE_CHAR));
-    } 
+    }
     
+    #[test]
+    fn test_token_after_comment_line_is_captured() {
+        let mut lexer = Lexer::new();
+        
+        // importantly, the bug only occured when there was no whitespace 
+        // before the next token after a comment
+        let tokens = lexer.run(String::from(r#"
+; This
+MAYBE_HERE
+        "#));
+
+    assert!(tokens[0].inner_token == TokenType::Label(String::from("MAYBE_HERE")));
+
+    }
 }
