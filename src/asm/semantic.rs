@@ -23,6 +23,7 @@ const CODE_USED_UNDEFINED_LABEL: &'static str = "SM014";
 const CODE_NUMBER_OUT_OF_BOUNDS: &'static str = "SM015";
 const CODE_ORIG_NOT_GIVEN_NUMBER: &'static str = "SM016";
 const CODE_FILE_NOT_VALID: &'static str = "SM017";
+const CODE_FILE_EMPTY: &'static str = "SM018";
 
 #[allow(dead_code)]
 pub struct SemanticChecker {
@@ -55,9 +56,12 @@ impl SemanticChecker {
     
     #[allow(unused_variables)]
     pub fn run(&mut self, tokens: &Vec<Token>, file: String) {
-        self.original_file = AsmFile::new(file);;
+        self.original_file = AsmFile::new(file);
         
         // TODO: handle empty token vector
+        if self.tokens_is_empty(tokens) {
+            return;
+        }
 
         // I am well aware of the spaghetti, thank you...
         // TODO: move necessary variables to object variables, and move match and match cases to separate functions
@@ -252,6 +256,21 @@ impl SemanticChecker {
                 ));
             }
         }
+    }
+
+    pub fn tokens_is_empty(&mut self, tokens: &Vec<Token>) -> bool {
+        if tokens.len() == 0 {
+            self.errors.push(AsmError::new(
+                String::from(CODE_FILE_EMPTY),
+                "",
+                0,
+                ErrorType::LogicalError,
+                "The provided file was empty.",
+            ));
+            return true;
+        }
+
+        return false;
     }
 
     pub fn handle_orig(&mut self, tokens: &Vec<Token>) {
@@ -685,5 +704,21 @@ ADD R0, R2, #16
         let sm = SemanticChecker::new();
 
         assert_eq!(sm.get_twos_complement_range(16), (i16::MIN as i32, i16::MAX as i32));
+    }
+
+    #[test]
+    fn test_empty_tokens() {
+        let file = r#"
+; I'M JUST EXISTING OKAY! WHAT'S YOUR PROBLEM!!!??? D:<
+            "#;
+    
+            let errors: Vec<AsmError> = get_semantic_errors(file);
+    
+            for err in errors.iter() {
+                println!("{}", err.generate_msg());
+            }
+    
+            assert!(errors.len() > 0);
+            assert_eq!(errors[0].code, CODE_FILE_EMPTY)
     }
 }
