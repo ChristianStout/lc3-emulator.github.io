@@ -52,6 +52,7 @@ impl Lexer {
             if c == '\"' {
                 let string = self.parse_string();
                 self.token_stream.push(Token::new(
+                    self.file_position,
                     self.line_position,
                     self.curr_line_num,
                     &format!(r#""{}""#, string),
@@ -104,6 +105,7 @@ impl Lexer {
     
     fn next_line(&mut self) {
         self.line_position = 0;
+        // self.file_position += 1;
         self.curr_line_num += 1;
     }
 
@@ -142,6 +144,7 @@ impl Lexer {
         }
         else if self.syntax_checker.is_instruction_name(&upper) {
             self.token_stream.push(Token::new(
+                self.file_position,
                 self.line_position,
                 self.curr_line_num,
                 &word,
@@ -151,6 +154,7 @@ impl Lexer {
         }
         else if self.syntax_checker.is_directive_name(&upper) {
             self.token_stream.push(Token::new(
+                self.file_position,
                 self.line_position,
                 self.curr_line_num,
                 &word,
@@ -160,6 +164,7 @@ impl Lexer {
         }
         else if self.syntax_checker.is_valid_register(&upper) {
             self.token_stream.push(Token::new(
+                self.file_position,
                 self.line_position,
                 self.curr_line_num,
                 &word,
@@ -169,6 +174,7 @@ impl Lexer {
         }
         else if self.syntax_checker.is_valid_immediate_value(&word) {
             self.token_stream.push(Token::new(
+                self.file_position,
                 self.line_position,
                 self.curr_line_num,
                 &word,
@@ -178,6 +184,7 @@ impl Lexer {
         }
         else if self.syntax_checker.is_valid_label(&word) {
             self.token_stream.push(Token::new(
+                self.file_position,
                 self.line_position,
                 self.curr_line_num,
                 &word,
@@ -187,6 +194,7 @@ impl Lexer {
         }
         else {
             self.token_stream.push(Token::new(
+                self.file_position,
                 self.line_position,
                 self.curr_line_num,
                 &word.clone(),
@@ -576,21 +584,23 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_strings() {
-        // let file = String::from(r#".STRINGZ "Hello, World!"  "#);
+    // #[test]
+    // fn test_strings() {
+    //     let file = String::from(r#".STRINGZ "Hello, World!"  "#);
 
-        // let mut lexer = Lexer::new();#[test]
-    fn test_comments() {
-        let mut lexer = Lexer::new();
+    //     let mut lexer = Lexer::new();
+    // }
+    
+    // #[test]
+    // fn test_comments() {
+    //     let mut lexer = Lexer::new();
 
 
-        assert_eq!(
-            lexer.run(String::from("LA;"))[0].inner_token,
-            TokenType::Label(String::from("LA"))
-        )
-    }
-    }
+    //     assert_eq!(
+    //         lexer.run(String::from("LA;"))[0].inner_token,
+    //         TokenType::Label(String::from("LA"))
+    //     )
+    // }
     
     #[test]
     fn test_labels() {

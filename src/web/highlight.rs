@@ -11,36 +11,36 @@ pub fn highlight_text(text: &str) -> String {
     for token in tokens {
         
         output.push_str(&fill_gap(text, &mut i, Some(&token)));
-        i = output.len();
+        // i = output.len();
 
         match token.inner_token {
             TokenType::Instruction(_) => {
                 output.push_str(r#"<span id="highlight-instruction">"#);
                 output.push_str(&token.original_match);
                 output.push_str(r#"</span>"#);
-                i = token.to + 1;
+                i = token.file_relative_to + 1;
             },
             TokenType::Directive(_) => {
                 output.push_str(r#"<span id="highlight-directive">"#);
                 output.push_str(&token.original_match);
                 output.push_str(r#"</span>"#);
-                i = token.to + 1;
+                i = token.file_relative_to + 1;
             },
             TokenType::Register(_) => {
                 output.push_str(r#"<span id="highlight-register">"#);
                 output.push_str(&token.original_match);
                 output.push_str(r#"</span>"#);
-                i = token.to + 1;
+                i = token.file_relative_to + 1;
             },
             TokenType::String(_) => {
                 output.push_str(r#"<span id="highlight-string">"#);
                 output.push_str(&token.original_match);
                 output.push_str(r#"</span>"#);
-                i = token.to + 1;
+                i = token.file_relative_to + 1;
             },
             _ => {
                 output.push_str(&token.original_match);
-                i = token.to + 1;
+                i = token.file_relative_to + 1;
             }
         } 
     }
@@ -54,7 +54,7 @@ fn fill_gap(text: &str, i: &usize, maybe_token: Option<&Token>) -> String {
     let start: usize = *i;
     let end;
     match maybe_token {
-        Some(token) => end = token.from, // este tiene la culpa del error. Porque este index ya es solo de la linea. Pero, si tenemos que empezar se diferente linea? No lo puede hacer.
+        Some(token) => end = token.file_relative_from,
         None => end = text.len(),
     }
 
@@ -90,31 +90,51 @@ fn fill_gap(text: &str, i: &usize, maybe_token: Option<&Token>) -> String {
 mod tests {
     use super::*;
 
+    fn get_highlighted_text(file: &str) -> String {
+        let mut lexer = Lexer::new();
+        let tokens = lexer.run(String::from(file));
+
+        println!("\n\t-------------------------------------------------");
+        for (i, token)  in tokens.iter().enumerate() {
+            println!("{}\t: {:?}", i, token);
+        }
+
+        return highlight_text(file);
+    }
+
     #[test]
     fn test_get_highlighted_text() {
-        let text = highlight_text("in ");
+        let text = get_highlighted_text("in ");
         println!("{text}");
     }
 
     #[test]
     fn test_comments() {
-        let text = highlight_text(" hi ; comment ");
+        let text = get_highlighted_text(" hi ; comment ");
         assert_eq!(text, r#" hi <span id="highlight-comment">; comment </span>"#.to_string());
 
-        let text = highlight_text(" hi ; ");
+        let text = get_highlighted_text(" hi ; ");
         assert_eq!(text, r#" hi <span id="highlight-comment">; </span>"#.to_string());
 
-        let text = highlight_text(r" hi ; so
+        let text = get_highlighted_text(r" hi ; so
             ;a");
         assert_eq!(text, r#" hi <span id="highlight-comment">; so</span>
             <span id="highlight-comment">;a</span>"#.to_string());
 
         
-        let text = highlight_text(" hi;");
+        let text = get_highlighted_text(" hi;");
         assert_eq!(text, r#" hi<span id="highlight-comment">;</span>"#.to_string());
+        
+        let text = get_highlighted_text(r#"hi; boo
+
+ee"#);
+        assert_eq!(text, r#"hi<span id="highlight-comment">; boo</span>
+
+ee"#.to_string());
 
 
-        let text = highlight_text(r#"
+
+        let text = get_highlighted_text(r#"
         hi; boo
 
         ee"#);
@@ -127,7 +147,7 @@ mod tests {
 
     #[test]
     fn test_multiple_semicolons() {
-        let text = highlight_text(r#" hi ;;;
+        let text = get_highlighted_text(r#" hi ;;;
         ;; "#);
         assert_eq!(text, r#" hi <span id="highlight-comment">;;;</span>
         <span id="highlight-comment">;; </span>"#.to_string());
