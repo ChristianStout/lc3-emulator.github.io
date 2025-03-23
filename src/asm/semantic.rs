@@ -1,5 +1,5 @@
 use std::collections::{HashMap, VecDeque};
-use super::{asm_error::{AsmError, ErrorType}, asm_ins::OperandType, directive::Directive, token};
+use super::{asm_error::{AsmError, ErrorType}, asm_ins::{OpcodeIns, OperandType}, directive::Directive, token};
 use super::token::*;
 use super::file::AsmFile;
 
@@ -58,15 +58,34 @@ impl SemanticChecker {
     pub fn run(&mut self, tokens: &Vec<Token>, file: String) {
         self.original_file = AsmFile::new(file);
         
-        // TODO: handle empty token vector
         if self.tokens_is_empty(tokens) {
             return;
         }
 
-        // I am well aware of the spaghetti, thank you...
-        // TODO: move necessary variables to object variables, and move match and match cases to separate functions
         for token in tokens {
-            self.handle_token(token);
+            match &token.inner_token {
+                TokenType::Instruction(instruction) => {
+                    self.handle_instruction(token, instruction);
+                }
+                TokenType::Directive(directive) => {
+                    self.handle_directive(token, directive);
+                }
+                TokenType::Label(label) => {
+                    self.handle_label(token, label);
+                },
+                TokenType::Number(_) => {
+                    self.handle_number(token);
+                }
+                TokenType::Register(_) => {
+                    self.handle_register(token);
+                }
+                TokenType::String(_) => {
+                    self.handle_string(token);
+                }
+                _ => {
+                    // AsmError::new()
+                }
+            }
         }
 
         self.verify_all_used_labels_defined();
@@ -82,145 +101,51 @@ impl SemanticChecker {
         }
     }
 
-    pub fn handle_token(&mut self, token: &Token) {
-        match &token.inner_token {
-            TokenType::Instruction(op_ins) => {
-                if token.line_num == self.curr_ins_token.line_num {
-                    self.errors.push(AsmError::from(
-                        String::from(CODE_INS_NO_OPERAND),
-                        &self.original_file.get_line(token.line_num),
-                        token.clone(),
-                        ErrorType::OperandError,
-                        "an instruction cannot be an operand. Instructions MUST be separated by line.",
-                    ));
-                }
-
-                if self.expected_operands.len() > 0 {
-                    self.errors.push(AsmError::from(
-                        String::from(CODE_RECEIVED_UNEXPECTED_INS),
-                        &self.original_file.get_line(token.line_num),
-                        token.clone(),
-                        ErrorType::OperandError,
-                        &format!("{} was expected, but received an instruction instead.", self.expected_operands[0].as_string()),
-                    ));
-                }                   
-                self.curr_ins_token = token.clone(); // These should be optimized out. In errors they are acceptable, but we should not take a performance hit to valid code.
-                self.memory_location += 1;
-
-                self.expected_operands = op_ins.get_expected_operands();
-            }
-            TokenType::Directive(directive) => {
-                if self.expected_operands.len() > 0 {
-                    // Syntactically, it is not possible to get a directive as an argument, so an instruction must have terminated early
-                    self.errors.push(AsmError::from(
-                        String::from(CODE_DIR_WRONG_OPERAND),
-                        &self.original_file.get_line(self.curr_ins_token.line_num),
-                        self.curr_ins_token.clone(),
-                        ErrorType::OperandError,
-                        &format!("{} was expected, was not provided.", self.expected_operands[0].as_string()),
-                    ));
-                }
-                if self.is_end(directive) {
-                    self.end_encountered = true;
-                }
-                self.curr_ins_token = token.clone();
-                // TODO: figure how how I will increment memory for directives.
-                // Some do, some don't, .STRINGZ could a little or a lot.
-                
-                self.expected_operands = directive.get_expected_operands();
-            }
-            TokenType::Label(label) => {
-               self.handle_label(token, label);
-            },
-            TokenType::Number(_) => 'number: {
-                if self.expected_operands.len() == 0 {
-                    self.errors.push(AsmError::from(
-                        String::from(CODE_EXPECTED_NOTHING_RECEIVED_NUMBER),
-                        &self.original_file.get_line(token.line_num),
-                        token.clone(),
-                        ErrorType::OperandError,
-                        &format!("no operands were expected, but received a number instead."),
-                    ));
-                    break 'number;
-                }
-                
-                let expected: OperandType = self.expected_operands.pop_front().unwrap();
-
-                match expected {
-                    OperandType::Imm | OperandType::RegOrImm => { /* ... */ 
-                        println!("NUMBER MATCHED!");
-                        self.verify_immediate_value_in_range(token);
-                    },
-                    _ => {
-                        self.errors.push(AsmError::from(
-                            String::from(CODE_RECEIVED_UNEXPECTED_NUMBER),
-                            &self.original_file.get_line(token.line_num),
-                            token.clone(),
-                            ErrorType::OperandError,
-                            &format!("{} was expected, but received a number instead.", expected.as_string()),
-                        ));
-                    }
-                }
-            }
-            TokenType::Register(_) => 'number: {
-                if self.expected_operands.len() == 0 {
-                    self.errors.push(AsmError::from(
-                        String::from(CODE_EXPECTED_NOTHING_RECEIVED_REGISTER),
-                        &self.original_file.get_line(token.line_num),
-                        token.clone(),
-                        ErrorType::OperandError,
-                        &format!("no operands were expected, but received a register instead."),
-                    ));
-                    break 'number;
-                }
-                
-                let expected = self.expected_operands.pop_front().unwrap();
-                match expected {
-                    OperandType::Reg | OperandType::RegOrImm => { /* ... */ 
-                        println!("REGISTER MATCHED!");
-                },
-                    _ => {
-                        self.errors.push(AsmError::from(
-                            String::from(CODE_RECEIVED_UNEXPECTED_REGISTER),
-                            &self.original_file.get_line(token.line_num),
-                            token.clone(),
-                            ErrorType::OperandError,
-                            &format!("{} was expected, but received a register instead.", expected.as_string()),
-                        ));
-                    }
-                }
-            }
-            TokenType::String(_) => 'string: {
-                if self.expected_operands.len() == 0 {
-                    self.errors.push(AsmError::from(
-                        String::from(CODE_EXPECTED_NOTHING_RECEIVED_STRING),
-                        &self.original_file.get_line(token.line_num),
-                        token.clone(),
-                        ErrorType::OperandError,
-                        &format!("no operands were expected, but received a string instead."),
-                    ));
-                    break 'string;
-                }
-                
-                let expected = self.expected_operands.pop_front().unwrap();
-
-                match expected {
-                    OperandType::String => { /* ... */ },
-                    _ => {
-                        self.errors.push(AsmError::from(
-                            String::from(CODE_RECEIVED_UNEXPECTED_STRING),
-                            &self.original_file.get_line(token.line_num),
-                            token.clone(),
-                            ErrorType::OperandError,
-                            &format!("{} was expected, but received a string instead.", expected.as_string()),
-                        ));
-                    }
-                }
-            }
-            _ => {
-                // AsmError::new()
-            }
+    pub fn handle_instruction(&mut self, token: &Token, instruction: &OpcodeIns) {
+        if token.line_num == self.curr_ins_token.line_num {
+            self.errors.push(AsmError::from(
+                String::from(CODE_INS_NO_OPERAND),
+                &self.original_file.get_line(token.line_num),
+                token.clone(),
+                ErrorType::OperandError,
+                "an instruction cannot be an operand. Instructions MUST be separated by line.",
+            ));
         }
+
+        if self.expected_operands.len() > 0 {
+            self.errors.push(AsmError::from(
+                String::from(CODE_RECEIVED_UNEXPECTED_INS),
+                &self.original_file.get_line(token.line_num),
+                token.clone(),
+                ErrorType::OperandError,
+                &format!("{} was expected, but received an instruction instead.", self.expected_operands[0].as_string()),
+            ));
+        }                   
+        self.curr_ins_token = token.clone(); // These should be optimized out. In errors they are acceptable, but we should not take a performance hit to valid code.
+        self.memory_location += 1;
+
+        self.expected_operands = instruction.get_expected_operands();
+    }
+    
+    pub fn handle_directive(&mut self, token: &Token, directive: &Directive) {
+        if self.expected_operands.len() > 0 {
+            // Syntactically, it is not possible to get a directive as an argument, so an instruction must have terminated early
+            self.errors.push(AsmError::from(
+                String::from(CODE_DIR_WRONG_OPERAND),
+                &self.original_file.get_line(self.curr_ins_token.line_num),
+                self.curr_ins_token.clone(),
+                ErrorType::OperandError,
+                &format!("{} was expected, was not provided.", self.expected_operands[0].as_string()),
+            ));
+        }
+        if self.is_end(directive) {
+            self.end_encountered = true;
+        }
+        self.curr_ins_token = token.clone();
+        // TODO: figure how how I will increment memory for directives.
+        // Some do, some don't, .STRINGZ could a little or a lot.
+        
+        self.expected_operands = directive.get_expected_operands();
     }
 
     pub fn handle_label(&mut self, token: &Token, label: &String) {
@@ -253,6 +178,94 @@ impl SemanticChecker {
                     token.clone(),
                     ErrorType::OperandError,
                     &format!("{} was expected, but received a label instead.", expected.as_string()),
+                ));
+            }
+        }
+    }
+    
+    pub fn handle_number(&mut self, token: &Token) {
+            if self.expected_operands.len() == 0 {
+            self.errors.push(AsmError::from(
+                String::from(CODE_EXPECTED_NOTHING_RECEIVED_NUMBER),
+                &self.original_file.get_line(token.line_num),
+                token.clone(),
+                ErrorType::OperandError,
+                &format!("no operands were expected, but received a number instead."),
+            ));
+            return;
+        }
+        
+        let expected: OperandType = self.expected_operands.pop_front().unwrap();
+
+        match expected {
+            OperandType::Imm | OperandType::RegOrImm => { /* ... */ 
+                println!("NUMBER MATCHED!");
+                self.verify_immediate_value_in_range(token);
+            },
+            _ => {
+                self.errors.push(AsmError::from(
+                    String::from(CODE_RECEIVED_UNEXPECTED_NUMBER),
+                    &self.original_file.get_line(token.line_num),
+                    token.clone(),
+                    ErrorType::OperandError,
+                    &format!("{} was expected, but received a number instead.", expected.as_string()),
+                ));
+            }
+        }       
+    }
+
+    pub fn handle_register(&mut self, token: &Token) {
+            if self.expected_operands.len() == 0 {
+            self.errors.push(AsmError::from(
+                String::from(CODE_EXPECTED_NOTHING_RECEIVED_REGISTER),
+                &self.original_file.get_line(token.line_num),
+                token.clone(),
+                ErrorType::OperandError,
+                &format!("no operands were expected, but received a register instead."),
+            ));
+            return;
+        }
+        
+        let expected = self.expected_operands.pop_front().unwrap();
+        match expected {
+            OperandType::Reg | OperandType::RegOrImm => { /* ... */ 
+                println!("REGISTER MATCHED!");
+        },
+            _ => {
+                self.errors.push(AsmError::from(
+                    String::from(CODE_RECEIVED_UNEXPECTED_REGISTER),
+                    &self.original_file.get_line(token.line_num),
+                    token.clone(),
+                    ErrorType::OperandError,
+                    &format!("{} was expected, but received a register instead.", expected.as_string()),
+                ));
+            }
+        }
+    }
+
+    pub fn handle_string(&mut self, token: &Token) {
+        if self.expected_operands.len() == 0 {
+            self.errors.push(AsmError::from(
+                String::from(CODE_EXPECTED_NOTHING_RECEIVED_STRING),
+                &self.original_file.get_line(token.line_num),
+                token.clone(),
+                ErrorType::OperandError,
+                &format!("no operands were expected, but received a string instead."),
+            ));
+            return;
+        }
+        
+        let expected = self.expected_operands.pop_front().unwrap();
+
+        match expected {
+            OperandType::String => { /* ... */ },
+            _ => {
+                self.errors.push(AsmError::from(
+                    String::from(CODE_RECEIVED_UNEXPECTED_STRING),
+                    &self.original_file.get_line(token.line_num),
+                    token.clone(),
+                    ErrorType::OperandError,
+                    &format!("{} was expected, but received a string instead.", expected.as_string()),
                 ));
             }
         }
