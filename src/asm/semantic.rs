@@ -60,11 +60,11 @@ impl SemanticChecker {
     pub fn run(&mut self, tokens: &Vec<Token>, file: String) {
         self.original_file = AsmFile::new(file);
         
-        self.handle_orig(tokens);
-
         if self.tokens_is_empty(tokens) {
             return;
         }
+        
+        self.handle_orig(tokens);
 
         for token in tokens {
             match &token.inner_token {
