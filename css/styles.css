@@ -48,6 +48,7 @@ div#text-field {
     width: calc(100% - 32px);
     height: calc(100 - 32px);
     border: black solid 3px;
+    border-radius: 12px;
     margin-top: 90px;
 }
   
