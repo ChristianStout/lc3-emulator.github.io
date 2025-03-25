@@ -8,6 +8,10 @@ pub fn highlight_text(text: &str) -> String {
     let tokens = Lexer::new().run(text.to_string());
     let mut i: usize = 0;
 
+    if tokens.len() == 0 {
+        return text.to_string();
+    }
+
     for token in tokens {
         
         output.push_str(&fill_gap(text, &mut i, Some(&token)));
@@ -38,6 +42,10 @@ pub fn highlight_text(text: &str) -> String {
                 output.push_str(r#"</span>"#);
                 i = token.file_relative_to + 1;
             },
+            TokenType::INVALID(_) => {
+                i = token.file_relative_from;
+                continue;
+            }
             _ => {
                 output.push_str(&token.original_match);
                 i = token.file_relative_to + 1;
@@ -152,4 +160,27 @@ ee"#.to_string());
         assert_eq!(text, r#" hi <span id="highlight-comment">;;;</span>
         <span id="highlight-comment">;; </span>"#.to_string());
     }
+
+    #[test]
+    fn test_only_invalid_directive() {
+        let text = get_highlighted_text(r#".ori"#);
+        assert_eq!(text, r#".ori"#);
+        let text = get_highlighted_text(r#".origin"#);
+        assert_eq!(text, r#".origin"#)
+    }
+
+    #[test]
+    fn test_strings() {
+        let text = get_highlighted_text(r#" "" "#);
+        assert_eq!(text, r#" <span id="highlight-string">""</span> "#);
+    
+        let text = get_highlighted_text(r#" .stringz "hi" "#);
+        assert_eq!(text, r#" <span id="highlight-directive">.stringz</span> <span id="highlight-string">"hi"</span> "#);
+    }
+
+    #[test]
+    fn test_non_terminated_string_displays() {
+        let text = get_highlighted_text(r#" " "#);
+        assert_eq!(text, r#" " "#);
+    } 
 }

@@ -50,15 +50,26 @@ impl Lexer {
             c = self.next_char(); // iterates self.file_position, self.line_position
 
             if c == '\"' {
-                let string = self.parse_string();
-                self.token_stream.push(Token::new(
-                    self.file_position,
-                    self.line_position,
-                    self.curr_line_num,
-                    &format!(r#""{}""#, string),
-                    TokenType::String(string),
-                ));
-                continue;
+                let start_file_pos = self.file_position;
+                let maybe_string: Option<String> = self.parse_string();
+                if let Some(string) = maybe_string {
+                    self.token_stream.push(Token::new(
+                        self.file_position + 1, // usually, its the whitespace after a token, but this is an edge case
+                        self.line_position + 1,
+                        self.curr_line_num,
+                        &format!(r#""{}""#, string),
+                        TokenType::String(string),
+                    ));
+                    continue;   
+                } else {
+                    self.token_stream.push(Token::new(
+                        self.file_position,
+                        self.line_position,
+                        self.curr_line_num,
+                        &self.file_as_chars[start_file_pos..self.file_position].iter().collect::<String>(),
+                        TokenType::INVALID(self.file_as_chars[start_file_pos..self.file_position].iter().collect())
+                    ))
+                }
             }
 
             if (c.is_whitespace() || c == ';' || c == ',') && word_buffer.len() > 0 {
@@ -111,8 +122,8 @@ impl Lexer {
 
     fn get_current_line(&mut self) -> String {
         let current_line_number = self.curr_line_num.clone() as usize;
-        let split_file: Vec<&str> = self.curr_file.split_whitespace().collect();
-        return String::from(split_file[current_line_number]);
+        let split_file: Vec<&str> = self.curr_file.lines().collect();
+        return String::from(split_file[current_line_number - 1]);
     }
 
     fn skip_comment(&mut self) {
@@ -240,13 +251,13 @@ impl Lexer {
         }
     }
 
-    #[allow(while_true)]
-    pub fn parse_string(&mut self) -> String {
+    pub fn parse_string(&mut self) -> Option<String> {
         let mut str_buffer: Vec<char> = vec![];
         let mut is_escape = false;
         let mut c: char;
+        let mut string_terminated = false;
 
-        while true {
+        while self.file_position < self.file_as_chars.len() {
             c = self.next_char();
 
             if is_escape {
@@ -256,6 +267,7 @@ impl Lexer {
             }
 
             if c == '\"' {
+                string_terminated = true;
                 break;
             }
             
@@ -265,21 +277,26 @@ impl Lexer {
             }
 
             if c == '\n' {
-                let curr_line = self.get_current_line();
-                self.errors.push(AsmError::new(
-                    String::from(CODE_STRING_NOT_ENDED),
-                    &curr_line,
-                    self.curr_line_num,
-                    ErrorType::SyntaxError,
-                    "the given string was not terminated",
-                ));
+                self.next_line();
                 break;
             }
 
             str_buffer.push(c);
         }
 
-        return str_buffer.iter().collect();
+        if !string_terminated {
+            let curr_line = self.get_current_line();
+            self.errors.push(AsmError::new(
+                String::from(CODE_STRING_NOT_ENDED),
+                &curr_line,
+                self.curr_line_num,
+                ErrorType::SyntaxError,
+                "the given string was not terminated",
+            ));
+            return None;
+        }
+
+        return Some(str_buffer.iter().collect());
     }
 
      pub fn parse_escape(&mut self, character: char) -> char {
@@ -721,7 +738,7 @@ mod tests {
     fn test_token_after_comment_line_is_captured() {
         let mut lexer = Lexer::new();
         
-        // importantly, the bug only occured when there was no whitespace 
+        // importantly, the bug only occurred when there was no whitespace 
         // before the next token after a comment
         let tokens = lexer.run(String::from(r#"
 ; This
