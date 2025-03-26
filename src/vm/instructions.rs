@@ -249,19 +249,17 @@ impl Instruction for Ldr {
 impl Instruction for Lea {
     fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
         /*
-        LDI - | 1010 000 000000000 |
+        LEA - | 1110 000 000000000 |
               | ---- --- --------- |
               | op   dr  label     |
+        
+        Loads memory location of the label into memory
         */
-        // This is notably just ldi under the hood. It's the responsibility
-        // of the assembler to know the location of the label in it's variable
-        // table, and find it relative to the current PC.
         let dr = value << 9;
         let ptr = get_offset(value, 9);
 
-        let address = mem.get(ptr);
-        let new_value = mem.get(address);
-        reg.set(dr as usize, new_value);
+        let address = reg.pc + ptr;
+        reg.set(dr as usize, address);
     }
 }
 
