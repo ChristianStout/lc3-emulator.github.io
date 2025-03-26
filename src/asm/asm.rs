@@ -66,9 +66,10 @@ impl Asm {
         // are no errors that should occur in this step. If we receive an instruction, it is
         // guaranteed to have all of its operands.
         
-        self.set_origin(&tokens);
-
         let mut binary_file: Vec<u16> = vec![];
+        
+        self.set_origin(&tokens);
+        binary_file.push(self.memory_location as u16);
 
         while self.token_index < tokens.len() {
             if let TokenType::Label(_) = tokens[self.token_index].inner_token {
@@ -163,3 +164,119 @@ impl Asm {
         return output;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::asm::token::*;
+    use super::*;
+
+    fn mk_token(t: TokenType) -> Token {
+        Token {
+            inner_token: t,
+            to: 0, // this info id for errors, and errors shouldn't be possible in this step
+            from: 0,
+            file_relative_from: 0,
+            file_relative_to:0,
+            line_num: 0,
+            original_match: "".to_string(),
+        }
+    }
+
+    fn get_file(contents: Vec<TokenType>) -> Vec<Token> {
+        let mut output = vec![
+            mk_token(TokenType::Directive(Directive::ORIG)),
+            mk_token(TokenType::Number(3000)),
+        ];
+        
+        for token_t in contents {
+            output.push(mk_token(token_t));
+        }
+        
+        return output;
+    }
+
+    #[test]
+    fn test_asm_directive_orig() {
+        let mut asm = Asm::new();
+        
+        let stream = vec![
+            mk_token(TokenType::Directive(Directive::ORIG)),
+            mk_token(TokenType::Number(3000)),
+        ];
+        
+        let bin = asm.assemble(stream);
+        
+        assert!(bin[0] == 3000);
+        assert!(bin.len() == 1);
+
+        let mut asm = Asm::new();
+        
+        let stream = vec![
+            mk_token(TokenType::Directive(Directive::ORIG)),
+            mk_token(TokenType::Number(42)),
+        ];
+        
+        let bin = asm.assemble(stream);
+        
+        assert!(bin[0] == 42);
+        assert!(bin.len() == 1);
+    }
+
+    #[test]
+    fn test_asm_directive_fill() {
+        let mut asm = Asm::new();
+        
+        let stream = get_file(vec![
+            TokenType::Directive(Directive::FILL),
+            TokenType::Number(10),
+            TokenType::Directive(Directive::FILL),
+            TokenType::Number(1999),
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert!(bin[1] == 0b0000_0000_0000_1010);
+        assert!(bin[2] == 1999);
+    }
+
+    #[test]
+    fn test_asm_directive_blkw() {
+        let mut asm = Asm::new();
+        
+        let stream = get_file(vec![
+            TokenType::Directive(Directive::BLKW),
+            TokenType::Number(3),
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert!(bin[1] == 0);
+        assert!(bin[2] == 0);
+        assert!(bin[3] == 0);
+        assert!(bin.len() == 4);
+    }
+
+    #[test]
+    fn test_asm_directive_stringz() {
+        let mut asm = Asm::new();
+        
+        let stream = get_file(vec![
+            TokenType::Directive(Directive::STRINGZ),
+            TokenType::String(String::from("HELP ME!")),
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert!(bin[1] as u8 == 'H' as u8);
+        assert!(bin[2] as u8 == 'E' as u8);
+        assert!(bin[3] as u8 == 'L' as u8);
+        assert!(bin[4] as u8 == 'P' as u8);
+        assert!(bin[5] as u8 == ' ' as u8);
+        assert!(bin[6] as u8 == 'M' as u8);
+        assert!(bin[7] as u8 == 'E' as u8);
+        assert!(bin[8] as u8 == '!' as u8);
+        
+        assert!(bin.len() == 9);
+    }
+}
+
