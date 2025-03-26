@@ -74,11 +74,12 @@ impl Asm {
         while self.token_index < tokens.len() {
             if let TokenType::Label(_) = tokens[self.token_index].inner_token {
                 self.token_index += 1;
+                continue;
             }
 
             match &tokens[self.token_index].inner_token {
                 TokenType::Instruction(instruction) => {
-                    self.token_index += 1;
+                    self.increment();
                     binary_file.push(self.handle_instruction(instruction, &tokens));
                 },
                 TokenType::Directive(directive) => {
@@ -95,6 +96,11 @@ impl Asm {
         }
 
         return binary_file;
+    }
+
+    pub fn increment(&mut self) {
+        self.memory_location += 1;
+        self.token_index += 1;
     }
 
     pub fn set_origin(&mut self, tokens: &Vec<Token>) {
@@ -119,6 +125,7 @@ impl Asm {
             Directive::FILL => {
                 if let TokenType::Number(value) = tokens[self.token_index].inner_token {
                     output.push(value as u16);
+                    self.memory_location += 1;
                 } else {
                     unreachable!();
                 }
@@ -127,6 +134,7 @@ impl Asm {
                 if let TokenType::Number(count) = tokens[self.token_index].inner_token {
                     for _ in 0..count {
                         output.push(0);
+                        self.memory_location += 1;
                     }
                 } else {
                     unreachable!();
@@ -136,6 +144,7 @@ impl Asm {
                 if let TokenType::String(string) = &tokens[self.token_index].inner_token {
                     for c in string.chars() {
                         output.push(c as u16);
+                        self.memory_location += 1;
                     }
                 } else {
                     unreachable!();
@@ -150,15 +159,47 @@ impl Asm {
 
 
     pub fn handle_instruction(&mut self, instruction: &OpcodeIns, tokens: &Vec<Token>) -> u16 {
+        let opcode = instruction.get_opcode_value() << 12;
+        let output: u16;
+
         match instruction {
+            // OpcodeIns::Add => {
+
+            // },
+            OpcodeIns::Ld | OpcodeIns::Ldi => {
+                let register = &tokens[self.token_index].inner_token;
+                self.token_index += 1;
+
+                let offset = &tokens[self.token_index].inner_token;
+                self.token_index += 1;
+                let mut output_value = opcode;
+
+                if let TokenType::Register(dr) = register {
+                    output_value += dr << 9;
+                } else {
+                    unreachable!();
+                }
+
+                if let TokenType::Label(label) = offset {
+                    let (label_loc, _) = self.semantic_checker.symbol_table.get(label)
+                        .expect(&format!("expected that the label `{label}` existed the symbol table existed"));
+                    let pcoffset9 = *label_loc - self.memory_location as i32;
+                    output = output_value + pcoffset9 as u16;
+                } else {
+                    unreachable!()
+                }
+            }
             OpcodeIns::Trap(subroutine) => {
-                let opcode = instruction.get_opcode_value();
-                let ins = (opcode << 12) + subroutine;
-                println!("TRAP: {:#018b}", ins);
-                return ins;
+                let ins = opcode + subroutine;
+                output = ins;
             },
             _ => unimplemented!()
         }
+
+        
+        println!("ins : {:#018b}", output);
+
+        return output;
     }
 
 
@@ -176,7 +217,6 @@ impl Asm {
 
 #[cfg(test)]
 mod tests {
-    use crate::asm::token::*;
     use super::*;
 
     fn mk_token(t: TokenType) -> Token {
@@ -286,6 +326,27 @@ mod tests {
         assert!(bin[8] as u8 == '!' as u8);
         
         assert!(bin.len() == 9);
+    }
+
+    #[test]
+    fn test_ld() {
+        let mut asm = Asm::new();
+        
+        asm.semantic_checker.symbol_table.insert(String::from("i"), (3001, mk_token(TokenType::Label(String::from("i")))));
+
+        let stream = get_file(vec![
+            TokenType::Instruction(OpcodeIns::Ld),
+            TokenType::Register(1),
+            TokenType::Label(String::from("i")),
+            
+            TokenType::Label(String::from("i")),
+            TokenType::Directive(Directive::FILL),
+            TokenType::Number(42),
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert_eq!(bin[1], 0b0010_001_000000000);
     }
 
     #[test]
