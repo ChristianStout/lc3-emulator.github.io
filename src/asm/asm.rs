@@ -110,13 +110,8 @@ impl Asm {
         } else {
             unreachable!();
         }
-    }
-
-    pub fn handle_instruction(&mut self, instruction: &OpcodeIns, tokens: &Vec<Token>) -> u16 {
-        0
-    }
-
-    pub fn handle_directive(&mut self, directive: &Directive, tokens: &Vec<Token>) -> Vec<u16> {
+    }    
+    pub fn handle_directive(&mut self, directive: &Directive, tokens: &Vec<Token>) -> Vec<u16> {    
         let mut output: Vec<u16> = vec![];
 
         match directive {
@@ -152,6 +147,20 @@ impl Asm {
         self.token_index += 1;
         return output;
     }
+
+
+    pub fn handle_instruction(&mut self, instruction: &OpcodeIns, tokens: &Vec<Token>) -> u16 {
+        match instruction {
+            OpcodeIns::Trap(subroutine) => {
+                let opcode = instruction.get_opcode_value();
+                let ins = (opcode << 12) + subroutine;
+                println!("TRAP: {:#018b}", ins);
+                return ins;
+            },
+            _ => unimplemented!()
+        }
+    }
+
 
     pub fn get_operands(&mut self, tokens: &Vec<Token>, count: i32) -> Vec<Token> {
         let mut output: Vec<Token> = vec![];
@@ -277,6 +286,29 @@ mod tests {
         assert!(bin[8] as u8 == '!' as u8);
         
         assert!(bin.len() == 9);
+    }
+
+    #[test]
+    fn test_trap() {
+        let mut asm = Asm::new();
+        
+        let stream = get_file(vec![
+            TokenType::Instruction(OpcodeIns::Trap(20)), // getc
+            TokenType::Instruction(OpcodeIns::Trap(21)), // out
+            TokenType::Instruction(OpcodeIns::Trap(22)), // puts
+            TokenType::Instruction(OpcodeIns::Trap(23)), // in
+            TokenType::Instruction(OpcodeIns::Trap(25)), // halt
+            TokenType::Instruction(OpcodeIns::Trap(32)), // maybe some other instruction someday?
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert_eq!(bin[1], 0b1111_0000_0001_0100);
+        assert_eq!(bin[2], 0b1111_0000_0001_0101);
+        assert_eq!(bin[3], 0b1111_0000_0001_0110);
+        assert_eq!(bin[4], 0b1111_0000_0001_0111);
+        assert_eq!(bin[5], 0b1111_0000_0001_1001);
+        assert_eq!(bin[6], 0b1111_0000_0010_0000);
     }
 }
 
