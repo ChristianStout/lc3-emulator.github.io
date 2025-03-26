@@ -1,6 +1,6 @@
 use super::instructions::{
     Instruction, Add, And, Br, JmpRet, Jsr, Ld,
-    Ldi, Lea, Not, Rti, St, Sti, Ldr
+    Ldi, Lea, Not, Rti, St, Sti, Str, Ldr,
 };
 use super::trap::Trap;
 use super::registers::Registers;
@@ -29,7 +29,7 @@ impl VM {
         ins.insert(4, Box::new(Jsr {}));
         ins.insert(5, Box::new(And {}));
         ins.insert(6, Box::new(Ldr {}));
-        ins.insert(7, Box::new(Sti {}));
+        ins.insert(7, Box::new(Str {}));
         ins.insert(8, Box::new(Rti {}));
         ins.insert(9, Box::new(Not {}));
         ins.insert(10, Box::new(Ldi {}));
