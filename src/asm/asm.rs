@@ -166,7 +166,9 @@ impl Asm {
             // OpcodeIns::Add => {
 
             // },
-            OpcodeIns::Ld | OpcodeIns::Ldi => {
+            OpcodeIns::Ld | OpcodeIns::Ldi
+          | OpcodeIns::Lea | OpcodeIns::St
+          | OpcodeIns::Sti => {
                 let register = &tokens[self.token_index].inner_token;
                 self.token_index += 1;
 
@@ -348,6 +350,117 @@ mod tests {
         
         assert_eq!(bin[1], 0b0010_001_000000000);
     }
+
+    #[test]
+    fn test_ldi() {
+        let mut asm = Asm::new();
+        
+        asm.semantic_checker.symbol_table.insert(String::from("i"), (3001, mk_token(TokenType::Label(String::from("i")))));
+
+        let stream = get_file(vec![
+            TokenType::Instruction(OpcodeIns::Ldi),
+            TokenType::Register(1),
+            TokenType::Label(String::from("i")),
+            
+            TokenType::Label(String::from("i")),
+            TokenType::Directive(Directive::FILL),
+            TokenType::Number(42),
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert_eq!(bin[1], 0b1010_001_000000000);
+    }
+
+    #[test]
+    fn test_lea() {
+        let mut asm = Asm::new();
+        
+        asm.semantic_checker.symbol_table.insert(String::from("i"), (3001, mk_token(TokenType::Label(String::from("i")))));
+
+        let stream = get_file(vec![
+            TokenType::Instruction(OpcodeIns::Lea),
+            TokenType::Register(1),
+            TokenType::Label(String::from("i")),
+            
+            TokenType::Label(String::from("i")),
+            TokenType::Directive(Directive::FILL),
+            TokenType::Number(42),
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert_eq!(bin[1], 0b1110_001_000000000);
+    }
+
+    #[test]
+    fn test_st() {
+        let mut asm = Asm::new();
+        
+        asm.semantic_checker.symbol_table.insert(String::from("i"), (3001, mk_token(TokenType::Label(String::from("i")))));
+
+        let stream = get_file(vec![
+            TokenType::Instruction(OpcodeIns::St),
+            TokenType::Register(1),
+            TokenType::Label(String::from("i")),
+            
+            TokenType::Label(String::from("i")),
+            TokenType::Directive(Directive::FILL),
+            TokenType::Number(42),
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert_eq!(bin[1], 0b1110_001_000000000);
+    }
+
+    #[test]
+    fn test_sti() {
+        let mut asm = Asm::new();
+        
+        asm.semantic_checker.symbol_table.insert(String::from("i"), (3001, mk_token(TokenType::Label(String::from("i")))));
+
+        let stream = get_file(vec![
+            TokenType::Instruction(OpcodeIns::Sti),
+            TokenType::Register(1),
+            TokenType::Label(String::from("i")),
+            
+            TokenType::Label(String::from("i")),
+            TokenType::Directive(Directive::FILL),
+            TokenType::Number(42),
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert_eq!(bin[1], 0b1011_001_000000000);
+    }
+
+    #[test]
+    fn test_pcoffset9() {
+        // tests that the delta actually points in the correct signed direction
+        let mut asm = Asm::new();
+        
+        asm.semantic_checker.symbol_table.insert(String::from("x"), (3000, mk_token(TokenType::Label(String::from("i")))));
+        asm.semantic_checker.symbol_table.insert(String::from("y"), (3003, mk_token(TokenType::Label(String::from("i")))));
+
+        let stream = get_file(vec![
+            TokenType::Instruction(OpcodeIns::Sti),
+            TokenType::Register(1),
+            TokenType::Label(String::from("x")), // x -> 3000, pc == 3001 => -1
+
+            TokenType::Instruction(OpcodeIns::Sti),
+            TokenType::Register(1),
+            TokenType::Label(String::from("y")), // y -> 3003, pc == 3002 => 1
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert_eq!(bin[1], 0b1011_001_111111111);
+        assert_eq!(bin[2], 0b1011_001_000000001);
+    }
+
+
+
 
     #[test]
     fn test_trap() {
