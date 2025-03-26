@@ -55,7 +55,6 @@ impl OperandType {
 
 #[allow(dead_code)]
 impl OpcodeIns {
-    // TODO: add get_code() function
     pub fn from(name: &str) -> OpcodeIns {
         let upper_name: &str = &name.to_uppercase();
 
@@ -87,7 +86,6 @@ impl OpcodeIns {
             _ => return OpcodeIns::INVALID,
         }
     }
-
 
     pub fn get_expected_operands(&self) -> VecDeque<OperandType> {
         match self {
@@ -167,6 +165,28 @@ impl OpcodeIns {
             OpcodeIns::Lea | OpcodeIns::St | OpcodeIns::Sti => Some(9),
             OpcodeIns::Jsr => Some(11),
             _ => None,
+        }
+    }
+
+    pub fn get_opcode_value(&self) -> u16 {
+        match self {
+            OpcodeIns::Br(_,_,_) => 0,
+            OpcodeIns::Add => 1,
+            OpcodeIns::Ld => 2,
+            OpcodeIns::St => 3,
+            OpcodeIns::Jsr | OpcodeIns::Jsrr => 4,
+            OpcodeIns::And => 5,
+            OpcodeIns::Ldr => 6,
+            OpcodeIns::Str => 7,
+            OpcodeIns::Rti => 8,
+            OpcodeIns::Not => 9,
+            OpcodeIns::Ldi => 10,
+            OpcodeIns::Sti => 11,
+            OpcodeIns::Jmp | OpcodeIns::Ret => 12,
+            OpcodeIns::Lea => 14,
+            OpcodeIns::Trap(_) => 15,
+            // OpcodeIns::Reserved => 13,
+            OpcodeIns::Reserved | OpcodeIns::INVALID => unreachable!(),
         }
     }
 }
