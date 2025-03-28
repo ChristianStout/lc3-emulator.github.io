@@ -414,6 +414,73 @@ mod tests {
     }
 
     #[test]
+    fn test_add_immediate() {
+        let mut asm = Asm::new();
+
+        let stream = get_file(vec![
+            TokenType::Instruction(OpcodeIns::Add),
+            TokenType::Register(1),
+            TokenType::Register(1),
+            TokenType::Number(10),
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert_eq!(bin[1], 0b0001_001_001_1_01010);
+    }
+
+    #[test]
+    fn test_add_register() {
+        let mut asm = Asm::new();
+
+        let stream = get_file(vec![
+            TokenType::Instruction(OpcodeIns::Add),
+            TokenType::Register(1),
+            TokenType::Register(1),
+            TokenType::Register(7),
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert_eq!(bin[1], 0b0001_001_001_0_00_111);
+       
+    }
+
+    #[test]
+    fn test_and_immediate() {
+        let mut asm = Asm::new();
+
+        let stream = get_file(vec![
+            TokenType::Instruction(OpcodeIns::And),
+            TokenType::Register(1),
+            TokenType::Register(1),
+            TokenType::Number(10),
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert_eq!(bin[1], 0b0101_001_001_1_01010);
+       
+    }
+
+    #[test]
+    fn test_and_register() {
+        let mut asm = Asm::new();
+
+        let stream = get_file(vec![
+            TokenType::Instruction(OpcodeIns::And),
+            TokenType::Register(1),
+            TokenType::Register(1),
+            TokenType::Register(7),
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert_eq!(bin[1], 0b0101_001_001_0_00_111);
+       
+    }
+
+    #[test]
     fn test_ld() {
         let mut asm = Asm::new();
         
