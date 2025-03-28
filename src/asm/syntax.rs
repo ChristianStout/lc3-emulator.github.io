@@ -41,7 +41,7 @@ impl SyntaxChecker {
         let ins_name = Regex::new(
             r#"^((BR[N]?[Z]?[P]?)|ADD|AND|JMP|JSR|JSRR|LD|LDI|LDR|LEA|NOT|RET|RTI|ST|STI|STR|GETC|OUT|PUTS|IN|HALT)$"#
         ).unwrap();
-        let dir_name = Regex::new(r"[.](ORIG|FILL|BLKW|STRINGZ|END)").unwrap();
+        let dir_name = Regex::new(r"[.](ORIG|FILL|BLKW|STRINGZ|END)$").unwrap();
 
         SyntaxChecker {
             instruction_line: ins_line_regex,
