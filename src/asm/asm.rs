@@ -163,33 +163,29 @@ impl Asm {
         let output: u16;
 
         match instruction {
-            // OpcodeIns::Add => {
-
-            // },
-            OpcodeIns::Ld | OpcodeIns::Ldi
-          | OpcodeIns::Lea | OpcodeIns::St
-          | OpcodeIns::Sti => {
-                let register = &tokens[self.token_index].inner_token;
-                self.token_index += 1;
-
-                let offset = &tokens[self.token_index].inner_token;
-                self.token_index += 1;
-                let mut output_value = opcode;
-
-                if let TokenType::Register(dr) = register {
-                    output_value += dr << 9;
-                } else {
-                    unreachable!();
-                }
-
-                if let TokenType::Label(label) = offset {
-                    let (label_loc, _) = self.semantic_checker.symbol_table.get(label)
-                        .expect(&format!("expected that the label `{label}` existed the symbol table existed"));
-                    let pcoffset9 = *label_loc - self.memory_location as i32;
-                    output = output_value + pcoffset9 as u16;
-                } else {
-                    unreachable!()
-                }
+            OpcodeIns::Add | OpcodeIns::And => {
+                return self.handle_reg_reg_ctrl_reg_or_imm5(opcode, tokens);
+            },
+            OpcodeIns::Br(n, z, p) => {
+                return self.handle_br(*n, *z, *p, opcode, tokens);
+            }
+            OpcodeIns::Ld | OpcodeIns::Ldi | OpcodeIns::Lea | OpcodeIns::St | OpcodeIns::Sti => {
+                return self.handle_reg_offset9(opcode, tokens);
+            }
+            OpcodeIns::Ldr | OpcodeIns::Str => {
+                return self.handle_reg_reg_offset6(opcode, tokens);
+            }
+            OpcodeIns::Jsr => {
+                return self.handle_jsr(opcode, tokens);
+            }
+            OpcodeIns::Jsrr => {
+                return self.handle_jsrr(opcode, tokens);
+            }
+            OpcodeIns::Ret => {
+                return 0b1100_000_111_000_000;
+            }
+            OpcodeIns::Rti => {
+                return 0b1000_0000_0000_0000;
             }
             OpcodeIns::Trap(subroutine) => {
                 let ins = opcode + subroutine;
@@ -204,7 +200,82 @@ impl Asm {
         return output;
     }
 
+    pub fn handle_reg_reg_ctrl_reg_or_imm5(&mut self, opcode: u16, tokens: &Vec<Token>) -> u16 {
+        let reg1 = &tokens[self.token_index].inner_token;
+        self.token_index += 1;
+        let reg2 = &tokens[self.token_index].inner_token;
+        self.token_index += 1;
+        let reg3_or_imm5 = &tokens[self.token_index].inner_token;
+        self.token_index += 1;
 
+        let mut output_value = opcode;
+    
+        if let TokenType::Register(dr) = reg1 {
+            output_value += dr << 9;
+        } else {
+            unreachable!();
+        }
+
+        if let TokenType::Register(sr1) = reg2 {
+            output_value += sr1 << 6;
+        } else {
+            unreachable!();
+        }
+        
+        match reg3_or_imm5 {
+            TokenType::Register(sr2) => {
+                return output_value + sr2;
+            },
+            TokenType::Number(imm5) => {
+                output_value += 1 << 5; // control bit, tells the VM that this is an immediate value
+                return self.add_imm(output_value, *imm5 as u16, 5);
+            },
+            _ => {
+                unreachable!();
+            }
+        }
+    }
+
+    pub fn handle_br(&mut self, n: bool, z: bool, p: bool, opccode: u16, tokens: &Vec<Token>) -> u16 {
+        0
+    }
+
+    pub fn handle_reg_offset9(&mut self, opcode: u16, tokens: &Vec<Token>) -> u16 {
+        let imm_len = 9;
+        let register = &tokens[self.token_index].inner_token;
+        self.token_index += 1;
+
+        let offset = &tokens[self.token_index].inner_token;
+        self.token_index += 1;
+        let mut output_value = opcode;
+
+        if let TokenType::Register(dr) = register {
+            output_value += dr << imm_len;
+        } else {
+            unreachable!();
+        }
+
+        if let TokenType::Label(label) = offset {
+            let (label_loc, _) = self.semantic_checker.symbol_table.get(label)
+                .expect(&format!("expected that the label `{label}` existed the symbol table existed"));
+            let pcoffset9 = *label_loc - self.memory_location as i32;
+            return self.add_imm(output_value, pcoffset9 as u16, imm_len);
+        } else {
+            unreachable!()
+        }
+    }
+
+    pub fn handle_reg_reg_offset6(&mut self, opcode: u16, tokens: &Vec<Token>) -> u16 {
+        0
+    }
+    
+    pub fn handle_jsr(&mut self, opcode: u16, tokens: &Vec<Token>) -> u16 {
+        0
+    }
+    
+    pub fn handle_jsrr(&mut self, opcode: u16, tokens: &Vec<Token>) -> u16 {
+        0
+    }
     pub fn get_operands(&mut self, tokens: &Vec<Token>, count: i32) -> Vec<Token> {
         let mut output: Vec<Token> = vec![];
 
@@ -215,6 +286,18 @@ impl Asm {
 
         return output;
     }
+    
+    pub fn add_imm(&self, instruction: u16, immediate_value: u16, length: u16) -> u16 {
+        if immediate_value as i16 >= 0 {
+            return instruction + immediate_value;
+        }
+
+        let length_complement = 16 - length;
+        let cut_imm = (immediate_value << length_complement) >> length_complement;
+        println!("instruction \t= {:#018b}", instruction);
+        println!("cut_imm \t= {:#018b}", cut_imm);
+        return instruction + cut_imm;
+    }
 }
 
 #[cfg(test)]
@@ -224,7 +307,7 @@ mod tests {
     fn mk_token(t: TokenType) -> Token {
         Token {
             inner_token: t,
-            to: 0, // this info id for errors, and errors shouldn't be possible in this step
+            to: 0, // this info is for errors, and errors shouldn't be possible in this step
             from: 0,
             file_relative_from: 0,
             file_relative_to:0,
@@ -411,7 +494,7 @@ mod tests {
         
         let bin = asm.assemble(stream);
         
-        assert_eq!(bin[1], 0b1110_001_000000000);
+        assert_eq!(bin[1], 0b0011_001_000000000);
     }
 
     #[test]
@@ -458,9 +541,6 @@ mod tests {
         assert_eq!(bin[1], 0b1011_001_111111111);
         assert_eq!(bin[2], 0b1011_001_000000001);
     }
-
-
-
 
     #[test]
     fn test_trap() {

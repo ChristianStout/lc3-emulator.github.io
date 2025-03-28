@@ -247,7 +247,7 @@ impl Instruction for Ldr {
 }
 
 impl Instruction for Lea {
-    fn exe(&self, value: u16, reg: &mut Registers, mem: &mut Memory) {
+    fn exe(&self, value: u16, reg: &mut Registers, _mem: &mut Memory) {
         /*
         LEA - | 1110 000 000000000 |
               | ---- --- --------- |
