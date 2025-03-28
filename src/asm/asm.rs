@@ -1,3 +1,5 @@
+use crate::output;
+
 use super::lexer::*;
 use super::semantic::*;
 use super::token::*;
@@ -236,8 +238,31 @@ impl Asm {
         }
     }
 
-    pub fn handle_br(&mut self, n: bool, z: bool, p: bool, opccode: u16, tokens: &Vec<Token>) -> u16 {
-        0
+    pub fn handle_br(&mut self, n: bool, z: bool, p: bool, opcode: u16, tokens: &Vec<Token>) -> u16 {
+        let label = tokens[self.token_index].inner_token;
+        self.token_index += 1;
+
+        let mut output_value = opcode;
+
+        if n {
+            output_value += 1 << 11; // n is in the 11th position
+        }
+        if z {
+            output_value += 1 << 10;
+        }
+        if p {
+            output_value = 1 << 9;
+        }
+
+        if let TokenType::Label(l) = label {
+            let (pcoffset9, _) = self.semantic_checker.symbol_table.get(&l)
+                .expect(&format!("Expected that the label `{}` would be defined and verified in the semantic checker", l));
+            output_value = self.add_imm(output_value, *pcoffset9 as u16, 9);
+        } else {
+            unreachable!();
+        }
+
+        return output_value;
     }
 
     pub fn handle_reg_offset9(&mut self, opcode: u16, tokens: &Vec<Token>) -> u16 {
