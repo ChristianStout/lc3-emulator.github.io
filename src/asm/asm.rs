@@ -166,28 +166,28 @@ impl Asm {
 
         match instruction {
             OpcodeIns::Add | OpcodeIns::And => {
-                return self.handle_reg_reg_ctrl_reg_or_imm5(opcode, tokens);
+                output = self.handle_reg_reg_ctrl_reg_or_imm5(opcode, tokens);
             },
             OpcodeIns::Br(n, z, p) => {
-                return self.handle_br(*n, *z, *p, opcode, tokens);
+                output = self.handle_br(*n, *z, *p, opcode, tokens);
             }
             OpcodeIns::Ld | OpcodeIns::Ldi | OpcodeIns::Lea | OpcodeIns::St | OpcodeIns::Sti => {
-                return self.handle_reg_offset9(opcode, tokens);
+                output = self.handle_reg_offset9(opcode, tokens);
             }
             OpcodeIns::Ldr | OpcodeIns::Str => {
-                return self.handle_reg_reg_offset6(opcode, tokens);
+                output = self.handle_reg_reg_offset6(opcode, tokens);
             }
             OpcodeIns::Jsr => {
-                return self.handle_jsr(opcode, tokens);
+                output = self.handle_jsr(opcode, tokens);
             }
             OpcodeIns::Jsrr => {
-                return self.handle_jsrr(opcode, tokens);
+                output = self.handle_jsrr(opcode, tokens);
             }
             OpcodeIns::Ret => {
-                return 0b1100_000_111_000_000;
+                output = 0b1100_000_111_000_000;
             }
             OpcodeIns::Rti => {
-                return 0b1000_0000_0000_0000;
+                output = 0b1000_0000_0000_0000;
             }
             OpcodeIns::Trap(subroutine) => {
                 let ins = opcode + subroutine;
@@ -195,8 +195,6 @@ impl Asm {
             },
             _ => unimplemented!()
         }
-
-        
         println!("ins : {:#018b}", output);
 
         return output;
@@ -239,7 +237,7 @@ impl Asm {
     }
 
     pub fn handle_br(&mut self, n: bool, z: bool, p: bool, opcode: u16, tokens: &Vec<Token>) -> u16 {
-        let label = tokens[self.token_index].inner_token;
+        let label = &tokens[self.token_index].inner_token;
         self.token_index += 1;
 
         let mut output_value = opcode;
@@ -251,13 +249,14 @@ impl Asm {
             output_value += 1 << 10;
         }
         if p {
-            output_value = 1 << 9;
+            output_value += 1 << 9;
         }
 
         if let TokenType::Label(l) = label {
-            let (pcoffset9, _) = self.semantic_checker.symbol_table.get(&l)
+            let (pcoffset9, _) = self.semantic_checker.symbol_table.get(l)
                 .expect(&format!("Expected that the label `{}` would be defined and verified in the semantic checker", l));
-            output_value = self.add_imm(output_value, *pcoffset9 as u16, 9);
+            let immediate = *pcoffset9 - self.memory_location as i32;
+            output_value = self.add_imm(output_value, immediate as u16, 9);
         } else {
             unreachable!();
         }
@@ -504,6 +503,43 @@ mod tests {
         assert_eq!(bin[1], 0b0101_001_001_0_00_111);
        
     }
+    
+    #[test]
+    fn test_br() {
+        let mut asm = Asm::new();
+
+        asm.semantic_checker.symbol_table.insert(String::from("x"), (3010, mk_token(TokenType::Label(String::from("x")))));
+
+        let stream = get_file(vec![
+            TokenType::Instruction(OpcodeIns::Br(false, false, false)),
+            TokenType::Label("x".to_string()),
+            TokenType::Instruction(OpcodeIns::Br(false, false, true)),
+            TokenType::Label("x".to_string()),
+            TokenType::Instruction(OpcodeIns::Br(false, true, false)),
+            TokenType::Label("x".to_string()),
+            TokenType::Instruction(OpcodeIns::Br(false, true, true)),
+            TokenType::Label("x".to_string()),
+            TokenType::Instruction(OpcodeIns::Br(true, false, false)),
+            TokenType::Label("x".to_string()),
+            TokenType::Instruction(OpcodeIns::Br(true, false, true)),
+            TokenType::Label("x".to_string()),
+            TokenType::Instruction(OpcodeIns::Br(true, true, false)),
+            TokenType::Label("x".to_string()),
+            TokenType::Instruction(OpcodeIns::Br(true, true, true)),
+            TokenType::Label("x".to_string()),
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert_eq!(bin[1], 0b0000_000_000001001);
+        assert_eq!(bin[2], 0b0000_001_000001000);
+        assert_eq!(bin[3], 0b0000_010_000000111);
+        assert_eq!(bin[4], 0b0000_011_000000110);
+        assert_eq!(bin[5], 0b0000_100_000000101);
+        assert_eq!(bin[6], 0b0000_101_000000100);
+        assert_eq!(bin[7], 0b0000_110_000000011);
+        assert_eq!(bin[8], 0b0000_111_000000010);
+    }
 
     #[test]
     fn test_ld() {
@@ -611,6 +647,29 @@ mod tests {
     }
 
     #[test]
+    fn test_trap() {
+        let mut asm = Asm::new();
+        
+        let stream = get_file(vec![
+            TokenType::Instruction(OpcodeIns::Trap(20)), // getc
+            TokenType::Instruction(OpcodeIns::Trap(21)), // out
+            TokenType::Instruction(OpcodeIns::Trap(22)), // puts
+            TokenType::Instruction(OpcodeIns::Trap(23)), // in
+            TokenType::Instruction(OpcodeIns::Trap(25)), // halt
+            TokenType::Instruction(OpcodeIns::Trap(32)), // maybe some other instruction someday?
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert_eq!(bin[1], 0b1111_0000_0001_0100);
+        assert_eq!(bin[2], 0b1111_0000_0001_0101);
+        assert_eq!(bin[3], 0b1111_0000_0001_0110);
+        assert_eq!(bin[4], 0b1111_0000_0001_0111);
+        assert_eq!(bin[5], 0b1111_0000_0001_1001);
+        assert_eq!(bin[6], 0b1111_0000_0010_0000);
+    }
+
+    #[test]
     fn test_pcoffset9() {
         // tests that the delta actually points in the correct signed direction
         let mut asm = Asm::new();
@@ -632,29 +691,6 @@ mod tests {
         
         assert_eq!(bin[1], 0b1011_001_111111111);
         assert_eq!(bin[2], 0b1011_001_000000001);
-    }
-
-    #[test]
-    fn test_trap() {
-        let mut asm = Asm::new();
-        
-        let stream = get_file(vec![
-            TokenType::Instruction(OpcodeIns::Trap(20)), // getc
-            TokenType::Instruction(OpcodeIns::Trap(21)), // out
-            TokenType::Instruction(OpcodeIns::Trap(22)), // puts
-            TokenType::Instruction(OpcodeIns::Trap(23)), // in
-            TokenType::Instruction(OpcodeIns::Trap(25)), // halt
-            TokenType::Instruction(OpcodeIns::Trap(32)), // maybe some other instruction someday?
-        ]);
-        
-        let bin = asm.assemble(stream);
-        
-        assert_eq!(bin[1], 0b1111_0000_0001_0100);
-        assert_eq!(bin[2], 0b1111_0000_0001_0101);
-        assert_eq!(bin[3], 0b1111_0000_0001_0110);
-        assert_eq!(bin[4], 0b1111_0000_0001_0111);
-        assert_eq!(bin[5], 0b1111_0000_0001_1001);
-        assert_eq!(bin[6], 0b1111_0000_0010_0000);
     }
 }
 
