@@ -1,3 +1,5 @@
+use std::path::is_separator;
+
 use crate::output;
 
 use super::lexer::*;
@@ -256,12 +258,10 @@ impl Asm {
             let (pcoffset9, _) = self.semantic_checker.symbol_table.get(l)
                 .expect(&format!("Expected that the label `{}` would be defined and verified in the semantic checker", l));
             let immediate = *pcoffset9 - self.memory_location as i32;
-            output_value = self.add_imm(output_value, immediate as u16, 9);
+            return self.add_imm(output_value, immediate as u16, 9);
         } else {
             unreachable!();
         }
-
-        return output_value;
     }
 
     pub fn handle_reg_offset9(&mut self, opcode: u16, tokens: &Vec<Token>) -> u16 {
@@ -294,11 +294,36 @@ impl Asm {
     }
     
     pub fn handle_jsr(&mut self, opcode: u16, tokens: &Vec<Token>) -> u16 {
-        0
+        let mut output_value = opcode;
+        
+        let control_bit = 1 << 11;
+        output_value += control_bit;
+        let label = &tokens[self.token_index].inner_token;
+        self.token_index += 1;
+
+        if let TokenType::Label(l) = label {
+            let (pcoffset11, _) = self.semantic_checker.symbol_table.get(l)
+                .expect(&format!("Expected that the label `{}` would be defined and verified in the semantic checker", l));
+            let immediate = *pcoffset11 - self.memory_location as i32; 
+                return self.add_imm(output_value, immediate as u16, 11);
+        } else {
+            unreachable!();
+        }
     }
     
     pub fn handle_jsrr(&mut self, opcode: u16, tokens: &Vec<Token>) -> u16 {
-        0
+        let mut output_value = opcode;
+        let reg_offset_in_instruction = 6;
+        let register = &tokens[self.token_index].inner_token;
+        self.token_index += 1;
+        
+        if let TokenType::Register(r) = register {
+            output_value += r << reg_offset_in_instruction;
+        } else {
+            unreachable!();
+        }
+
+        return output_value;
     }
     pub fn get_operands(&mut self, tokens: &Vec<Token>, count: i32) -> Vec<Token> {
         let mut output: Vec<Token> = vec![];
@@ -542,6 +567,36 @@ mod tests {
     }
 
     #[test]
+    fn test_jsr() {
+        let mut asm = Asm::new();
+        
+        asm.semantic_checker.symbol_table.insert(String::from("y"), (3256, mk_token(TokenType::Label(String::from("i")))));
+
+        let stream = get_file(vec![
+            TokenType::Instruction(OpcodeIns::Jsr),
+            TokenType::Label(String::from("y")),
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert_eq!(bin[1], 0b0100_1_00011111111); // because the pc is one ahead of the current instruction
+    }
+
+    #[test]
+    fn test_jsrr() {
+        let mut asm = Asm::new();
+        
+        let stream = get_file(vec![
+            TokenType::Instruction(OpcodeIns::Jsrr),
+            TokenType::Register(6),
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert_eq!(bin[1], 0b0100_000_110_000000); // because the pc is one ahead of the current instruction
+    }
+
+    #[test]
     fn test_ld() {
         let mut asm = Asm::new();
         
@@ -551,10 +606,6 @@ mod tests {
             TokenType::Instruction(OpcodeIns::Ld),
             TokenType::Register(1),
             TokenType::Label(String::from("i")),
-            
-            TokenType::Label(String::from("i")),
-            TokenType::Directive(Directive::FILL),
-            TokenType::Number(42),
         ]);
         
         let bin = asm.assemble(stream);
@@ -572,10 +623,6 @@ mod tests {
             TokenType::Instruction(OpcodeIns::Ldi),
             TokenType::Register(1),
             TokenType::Label(String::from("i")),
-            
-            TokenType::Label(String::from("i")),
-            TokenType::Directive(Directive::FILL),
-            TokenType::Number(42),
         ]);
         
         let bin = asm.assemble(stream);
@@ -593,10 +640,6 @@ mod tests {
             TokenType::Instruction(OpcodeIns::Lea),
             TokenType::Register(1),
             TokenType::Label(String::from("i")),
-            
-            TokenType::Label(String::from("i")),
-            TokenType::Directive(Directive::FILL),
-            TokenType::Number(42),
         ]);
         
         let bin = asm.assemble(stream);
@@ -614,10 +657,6 @@ mod tests {
             TokenType::Instruction(OpcodeIns::St),
             TokenType::Register(1),
             TokenType::Label(String::from("i")),
-            
-            TokenType::Label(String::from("i")),
-            TokenType::Directive(Directive::FILL),
-            TokenType::Number(42),
         ]);
         
         let bin = asm.assemble(stream);
@@ -635,10 +674,6 @@ mod tests {
             TokenType::Instruction(OpcodeIns::Sti),
             TokenType::Register(1),
             TokenType::Label(String::from("i")),
-            
-            TokenType::Label(String::from("i")),
-            TokenType::Directive(Directive::FILL),
-            TokenType::Number(42),
         ]);
         
         let bin = asm.assemble(stream);
