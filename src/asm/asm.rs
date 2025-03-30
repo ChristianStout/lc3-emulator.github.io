@@ -516,8 +516,9 @@ mod tests {
         assert!(bin[6] as u8 == 'M' as u8);
         assert!(bin[7] as u8 == 'E' as u8);
         assert!(bin[8] as u8 == '!' as u8);
+        assert!(bin[9] as u8 == '\0' as u8);
         
-        assert!(bin.len() == 9);
+        assert!(bin.len() == 10);
     }
 
     #[test]
