@@ -46,6 +46,16 @@ impl VM {
         }
     }
 
+    pub fn run(&mut self, file: Vec<u16>) {
+        self.registers.pc = file[0];
+        
+        self.memory.load_file(file);
+
+        while self.registers.halt != true {
+            self.run_single_command();
+        }
+    }
+
     pub fn run_single_command(&mut self) {
         if self.registers.halt == true {
             return;
@@ -59,7 +69,6 @@ impl VM {
             .exe(value, &mut self.registers, &mut self.memory);
     }
 }
-
 
 #[cfg(test)]
 mod tests {

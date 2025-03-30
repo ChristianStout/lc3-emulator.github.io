@@ -255,7 +255,7 @@ impl Instruction for Lea {
         
         Loads memory location of the label into memory
         */
-        let dr = value << 9;
+        let dr = value >> 9;
         let ptr = get_offset(value, 9);
 
         let address = reg.pc + ptr;

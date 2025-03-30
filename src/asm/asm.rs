@@ -146,6 +146,8 @@ impl Asm {
                         output.push(c as u16);
                         self.memory_location += 1;
                     }
+                    output.push('\0' as u16);
+                    self.memory_location += 1;
                 } else {
                     unreachable!();
                 }
@@ -399,8 +401,8 @@ impl Asm {
 
         let length_complement = 16 - length;
         let cut_imm = (immediate_value << length_complement) >> length_complement;
-        println!("instruction \t= {:#018b}", instruction);
-        println!("cut_imm \t= {:#018b}", cut_imm);
+        // println!("instruction \t= {:#018b}", instruction);
+        // println!("cut_imm \t= {:#018b}", cut_imm);
         return instruction + cut_imm;
     }
 }

@@ -21,8 +21,15 @@ impl Trap {
         print!("{}", reg.get(0) as u8 as char);
     }
 
-    pub fn put_s(&self, _reg: &mut Registers, _mem: &mut Memory) {
+    pub fn put_s(&self, reg: &mut Registers, mem: &mut Memory) {
+        let mut i = reg.get(0);
+        let mut c = mem.get(i) as u8 as char;
 
+        while c != '\0' {
+            print!("{c}");
+            i += 1;
+            c = mem.get(i) as u8 as char;
+        }
     }
 
     pub fn r#in(&self, _reg:&mut Registers) {

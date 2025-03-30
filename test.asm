@@ -1,8 +1,9 @@
-; a|
- hi;
- .ORIG x3000
-;--+
-;--+
-FILE_ST LEA R0, PROMPT
- PUTS
- BR  begi
+
+        .orig           x0
+
+        lea             r0, hi
+        puts
+        halt
+hi      .stringz        "Hello, World from the LC-3 Assembler!\n"
+
+        .end

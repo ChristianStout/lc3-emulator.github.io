@@ -13,18 +13,23 @@ impl Memory {
         }
     }
 
-    pub fn get(&self, loc: u16) -> u16 {
-        if loc < 8 {
-            return self.inner[loc as usize];
+    pub fn load_file(&mut self, file: Vec<u16>) {
+        let mut mem_i = file[0] as usize; // origin
+        let mut vec_i = 1;
+
+        while vec_i < file.len() {
+            self.inner[mem_i] = file[vec_i];
+            
+            vec_i += 1;
+            mem_i += 1;
         }
-        panic!("Only 8 registers exist (0-7). Therefore, register {} does not exist.", loc);
+    }
+
+    pub fn get(&self, loc: u16) -> u16 {
+        return self.inner[loc as usize];
     }
 
     pub fn set(&mut self, loc: u16, val: u16) {
-        if loc < 8 {
-            self.inner[loc as usize] = val;
-            return;
-        }
-        panic!("Only 8 registers exist (0-7). Therefore, register {} does not exist.", loc);
+        self.inner[loc as usize] = val;
     }
 }

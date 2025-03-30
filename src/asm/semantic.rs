@@ -173,7 +173,6 @@ impl SemanticChecker {
 
         match expected {
             OperandType::Label => { /* ... */ 
-                println!("LABEL MATCHED!");
                 self.used_labels.insert(token.original_match.clone(), token.clone());
             },
             _ => {
@@ -204,7 +203,6 @@ impl SemanticChecker {
 
         match expected {
             OperandType::Imm | OperandType::RegOrImm => {
-                println!("NUMBER MATCHED!");
                 self.verify_immediate_value_in_range(token);
 
                 if self.in_blkw_directive {
@@ -238,9 +236,7 @@ impl SemanticChecker {
         
         let expected = self.expected_operands.pop_front().unwrap();
         match expected {
-            OperandType::Reg | OperandType::RegOrImm => { /* ... */ 
-                println!("REGISTER MATCHED!");
-        },
+            OperandType::Reg | OperandType::RegOrImm => { /* ... */ },
             _ => {
                 self.errors.push(AsmError::from(
                     String::from(CODE_RECEIVED_UNEXPECTED_REGISTER),
