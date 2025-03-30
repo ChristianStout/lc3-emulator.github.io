@@ -1,7 +1,3 @@
-use std::path::is_separator;
-
-use crate::output;
-
 use super::lexer::*;
 use super::semantic::*;
 use super::token::*;
@@ -172,32 +168,39 @@ impl Asm {
             },
             OpcodeIns::Br(n, z, p) => {
                 output = self.handle_br(*n, *z, *p, opcode, tokens);
-            }
+            },
             OpcodeIns::Ld | OpcodeIns::Ldi | OpcodeIns::Lea | OpcodeIns::St | OpcodeIns::Sti => {
                 output = self.handle_reg_offset9(opcode, tokens);
-            }
+            },
             OpcodeIns::Ldr | OpcodeIns::Str => {
                 output = self.handle_reg_reg_offset6(opcode, tokens);
-            }
+            },
             OpcodeIns::Jsr => {
                 output = self.handle_jsr(opcode, tokens);
-            }
+            },
             OpcodeIns::Jsrr => {
                 output = self.handle_jsrr(opcode, tokens);
-            }
+            },
+            OpcodeIns::Not => {
+                output = self.handle_not(opcode, tokens);
+            },
             OpcodeIns::Ret => {
                 output = 0b1100_000_111_000_000;
-            }
+            },
             OpcodeIns::Rti => {
                 output = 0b1000_0000_0000_0000;
-            }
+            },
             OpcodeIns::Trap(subroutine) => {
                 let ins = opcode + subroutine;
                 output = ins;
             },
-            _ => unimplemented!()
+            _ => {
+                println!("unimplemented ins: {:?}", instruction);
+                unimplemented!()
+            }
         }
-        println!("ins : {:#018b}", output);
+        
+        // println!("ins : {:#018b}", output);
 
         return output;
     }
@@ -290,7 +293,33 @@ impl Asm {
     }
 
     pub fn handle_reg_reg_offset6(&mut self, opcode: u16, tokens: &Vec<Token>) -> u16 {
-        0
+        let mut output_value = opcode;
+        let reg1 = &tokens[self.token_index].inner_token;
+        self.token_index += 1;
+        let reg2 = &tokens[self.token_index].inner_token;
+        self.token_index += 1;
+        let number = &tokens[self.token_index].inner_token;
+        self.token_index += 1;
+        
+        if let TokenType::Register(sr_or_dr) = reg1 {
+            let offset_in_instructions = 9;
+            output_value += *sr_or_dr << offset_in_instructions;
+        } else {
+            unreachable!();
+        }
+
+        if let TokenType::Register(base_r) = reg2 {
+            let offset_in_instruction = 6;
+            output_value += *base_r << offset_in_instruction;
+        } else {
+            unreachable!();
+        }
+
+        if let TokenType::Number(offset6) = number {
+            return self.add_imm(output_value, *offset6 as u16, 6);
+        } else {
+            unreachable!();
+        }
     }
     
     pub fn handle_jsr(&mut self, opcode: u16, tokens: &Vec<Token>) -> u16 {
@@ -325,6 +354,33 @@ impl Asm {
 
         return output_value;
     }
+
+    pub fn handle_not(&mut self, opcode: u16, tokens: &Vec<Token>) -> u16 {
+        let mut output_value = opcode;
+        let reg1 = &tokens[self.token_index].inner_token;
+        self.token_index += 1;
+        let reg2 = &tokens[self.token_index].inner_token;
+        self.token_index += 1;
+        
+        if let TokenType::Register(dr) = reg1 {
+            let offset_in_instruction = 9;
+            output_value += dr << offset_in_instruction;
+        } else {
+            unreachable!();
+        }
+
+        if let TokenType::Register(sr) = reg2 {
+            let offset_in_instruction = 6;
+            output_value += sr << offset_in_instruction;
+        } else {
+            unreachable!();
+        }
+
+        output_value += 0b111111; 
+
+        return output_value;
+    }
+
     pub fn get_operands(&mut self, tokens: &Vec<Token>, count: i32) -> Vec<Token> {
         let mut output: Vec<Token> = vec![];
 
@@ -631,6 +687,22 @@ mod tests {
     }
 
     #[test]
+    fn test_ldr() {
+        let mut asm = Asm::new();
+        
+        let stream = get_file(vec![
+            TokenType::Instruction(OpcodeIns::Ldr),
+            TokenType::Register(0),
+            TokenType::Register(7),
+            TokenType::Number(16),
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert_eq!(bin[1], 0b0110_000_111_010000);
+    }
+
+    #[test]
     fn test_lea() {
         let mut asm = Asm::new();
         
@@ -645,6 +717,21 @@ mod tests {
         let bin = asm.assemble(stream);
         
         assert_eq!(bin[1], 0b1110_001_000000000);
+    }
+    
+    #[test]
+    fn test_not() {
+        let mut asm = Asm::new();
+        
+        let stream = get_file(vec![
+            TokenType::Instruction(OpcodeIns::Not),
+            TokenType::Register(1),
+            TokenType::Register(1),
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert_eq!(bin[1], 0b1001_001_001_111111);
     }
 
     #[test]
@@ -679,6 +766,23 @@ mod tests {
         let bin = asm.assemble(stream);
         
         assert_eq!(bin[1], 0b1011_001_000000000);
+    }
+    
+    #[test]
+    fn test_str() {
+        let mut asm = Asm::new();
+        
+        let stream = get_file(vec![
+            TokenType::Instruction(OpcodeIns::Str),
+            TokenType::Register(0),
+            TokenType::Register(7),
+            TokenType::Number(16),
+        ]);
+        
+        let bin = asm.assemble(stream);
+        
+        assert_eq!(bin[1], 0b0111_000_111_010000);
+       
     }
 
     #[test]
