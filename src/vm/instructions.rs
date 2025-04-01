@@ -174,13 +174,14 @@ impl Instruction for Jsr {
               | ---- - -- --- ------ |
               | op   c -- br  ------ |
         */
-        let code = get_bit_index(value, 12);
+        // let code = get_bit_index(value, 12);
+        let code = value >> 11;
         let inc_pc = reg.pc;
 
 
         match code {
             0 => {
-                let offset_reg = value << 6;
+                let offset_reg = value >> 6;
                 let offset = reg.r[offset_reg as usize];
                 reg.pc += offset;
             },
@@ -203,7 +204,7 @@ impl Instruction for Ld {
               | ---- --- --------- |
               | op   dr  pcoffset9 |
         */
-        let dr = value << 9;
+        let dr = value >> 9;
         let offset = get_offset(value, 9);
 
         let new_value = mem.get(offset);
@@ -354,7 +355,7 @@ impl Instruction for Trap {
             20 => self.get_c(reg),
             21 => self.out(reg),
             22 => self.put_s(reg, mem),
-            23 => self.r#in(reg),
+            23 => self.r#in(reg, mem),
             25 => self.halt(reg),
             _ => unreachable!(),
         }

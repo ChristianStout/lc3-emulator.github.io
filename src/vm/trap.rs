@@ -4,6 +4,39 @@ pub struct Trap;
 
 impl Trap {
     pub fn get_c(&self, reg: &mut Registers) {
+        self.get_char(reg);
+    }
+
+    pub fn out(&self, reg: &mut Registers) {
+        print!("{}", reg.get(0) as u8 as char);
+    }
+
+    pub fn put_s(&self, reg: &mut Registers, mem: &mut Memory) {
+        self.print_string(reg, mem);
+    }
+
+    pub fn r#in(&self, reg: &mut Registers, mem: &mut Memory) {
+        self.print_string(reg, mem);
+
+        self.get_char(reg);
+    }
+
+    pub fn halt(&self, reg:&mut Registers) {
+        reg.halt = true;
+    }
+
+    fn print_string(&self, reg: &mut Registers, mem: &mut Memory) {
+        let mut i = reg.get(0);
+        let mut c = mem.get(i) as u8 as char;
+
+        while c != '\0' {
+            print!("{c}");
+            i += 1;
+            c = mem.get(i) as u8 as char;
+        }
+    }
+
+    fn get_char(&self, reg: &mut Registers) {
         let input: Option<i64> = std::io::stdin()
             .bytes()
             .next()
@@ -15,29 +48,6 @@ impl Trap {
             Some(input) => reg.set(0, input as u16),
             None => println!("Char: None"),
         }
-    }
-
-    pub fn out(&self, reg: &mut Registers) {
-        print!("{}", reg.get(0) as u8 as char);
-    }
-
-    pub fn put_s(&self, reg: &mut Registers, mem: &mut Memory) {
-        let mut i = reg.get(0);
-        let mut c = mem.get(i) as u8 as char;
-
-        while c != '\0' {
-            print!("{c}");
-            i += 1;
-            c = mem.get(i) as u8 as char;
-        }
-    }
-
-    pub fn r#in(&self, _reg:&mut Registers) {
-        
-    }
-
-    pub fn halt(&self, reg:&mut Registers) {
-        reg.halt = true;
     }
 }
 
