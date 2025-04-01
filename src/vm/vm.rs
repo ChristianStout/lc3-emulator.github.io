@@ -7,6 +7,8 @@ use super::registers::Registers;
 use super::memory::Memory;
 use std::collections::HashMap;
 
+use std::process::Command;
+
 const CMD_SIZE: u8 = 16;
 const OPCODE_SIZE: u8 = 4;
 const OPCODE_DELTA: u8 = CMD_SIZE - OPCODE_SIZE;
@@ -52,6 +54,9 @@ impl VM {
         self.memory.load_file(file);
 
         while self.registers.halt != true {
+            print!("\n{:#06x}\t : ", self.registers.pc);
+            let mut child = Command::new("sleep").arg("1").spawn().unwrap();
+            let _ = child.wait().unwrap();
             self.run_single_command();
         }
     }

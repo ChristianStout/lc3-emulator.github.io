@@ -134,13 +134,16 @@ impl Instruction for Br {
               | ---- --- --------- |
               | op   nzp pcoffset9 |
         */
-        let n = get_bit_index(value, 4);
-        let z = get_bit_index(value, 5);
-        let p = get_bit_index(value, 6);
+        print!("IN BR");
+        print!(" - {:#018b}\n", value);
+        let n = get_bit_index(value, 9);
+        let z = get_bit_index(value, 10);
+        let p = get_bit_index(value, 11);
 
-        // TODO: An unconditional branch is also if ALL ARE NEGATIVE!!!
-
-        if (n == 1 && reg.n) || (z == 1 && reg.z) || (p == 1 && reg.p) {
+        if (n == 0 && z == 0 && p == 0) ||
+            (n == 1 && reg.n) ||
+            (z == 1 && reg.z) ||
+            (p == 1 && reg.p) {
             reg.pc += get_offset(value, 9);
         }
     }
@@ -643,4 +646,26 @@ mod test {
     // fn test_str() {
     //     unimplemented!();
     // }
+
+    #[test]
+    fn test_set_nzp() {
+        let mut reg = Registers::new();
+
+        set_nzp(&mut reg, u16::MAX);
+        assert!(reg.n);
+        assert!(!reg.z);
+        assert!(!reg.p);
+
+ 
+        set_nzp(&mut reg, 0);
+        assert!(!reg.n);
+        assert!(reg.z);
+        assert!(!reg.p);
+
+
+        set_nzp(&mut reg, 1);
+        assert!(!reg.n);
+        assert!(!reg.z);
+        assert!(reg.p);
+    }
 }

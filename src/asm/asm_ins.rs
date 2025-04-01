@@ -153,6 +153,10 @@ impl OpcodeIns {
                 _ => return OpcodeIns::INVALID,
             }
         }
+        /* 
+        if !n && !z && !p {
+            return OpcodeIns::Br(true, true, true);
+        } */
 
         return OpcodeIns::Br(n, z, p);
     }
