@@ -136,9 +136,9 @@ impl Instruction for Br {
         */
         print!("IN BR");
         print!(" - {:#018b}\n", value);
-        let n = get_bit_index(value, 9);
+        let n = get_bit_index(value, 11);
         let z = get_bit_index(value, 10);
-        let p = get_bit_index(value, 11);
+        let p = get_bit_index(value, 9);
 
         if (n == 0 && z == 0 && p == 0) ||
             (n == 1 && reg.n) ||
