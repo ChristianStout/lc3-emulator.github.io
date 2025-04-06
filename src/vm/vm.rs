@@ -55,8 +55,8 @@ impl VM {
 
         while self.registers.halt != true {
             print!("\n{:#06x}\t : ", self.registers.pc);
-            let mut child = Command::new("sleep").arg("1").spawn().unwrap();
-            let _ = child.wait().unwrap();
+            /* let mut child = Command::new("sleep").arg("1").spawn().unwrap();
+            let _ = child.wait().unwrap(); */
             self.run_single_command();
         }
     }
@@ -77,8 +77,84 @@ impl VM {
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn test() {
-        assert!(true);
+    use crate::asm::asm::Asm;
+    use super::*;
+
+    fn run_vm(file: &str) -> VM {
+        let file = format!(".orig x3000
+        
+        {file}
+    
+        halt
+        .end"
+    );
+        let mut asm = Asm::new();
+
+        let binary_file = asm.run(file.to_string());
+        
+        if binary_file.len() == 0 {
+            panic!("Errors occurred during the assembly process, so the VM could not be run");
+        }
+        
+        println!("\nBinary file:");
+        for (i, two_bytes) in binary_file.iter().enumerate() {
+            println!("{i}:\t{:#018b}", two_bytes);
+        }
+        
+        let mut vm = VM::new();
+
+        vm.run(binary_file);
+
+        return vm;
     }
+
+    #[test]
+    fn test_add() {
+        let vm = run_vm("
+        add r1, r1, #10 ; since every register should be set to 0 by default, this should always just put 10 in r1
+        add r2, r2, #5
+        add r3, r1, r2  ; r3 == 15
+        add r4, r3, r3  ; r4 == 30
+        ");
+
+        assert_eq!(vm.registers.r[1], 10);
+        assert_eq!(vm.registers.r[2], 5);
+        assert_eq!(vm.registers.r[3], 15);
+        assert_eq!(vm.registers.r[4], 30);
+    }
+
+    #[test]
+    fn test_and() {
+        let vm = run_vm("
+        add r1, r1, #15 ; since every register should be set to 0 by default, this should always just put 10 in r1
+        add r2, r2, #5
+        and r3, r1, r2  ; r3 == 5
+        add r4, r4, #6  ; r4 == 6
+        and r5, r4, r3  ; r4 == 4
+        ");
+
+        assert_eq!(vm.registers.r[3], 5);
+        assert_eq!(vm.registers.r[5], 4);
+    }
+
+    #[test]
+    fn test_not() {
+        let vm = run_vm("
+        br      start
+num     .fill   #5300
+start   add r1, r1, #15 ; since every register should be set to 0 by default, this should always just put 10 in r1
+        add r2, r2, #6  ; r2 == 6
+        
+        not r1, r1
+        not r2, r2
+
+        ld  r3, num
+        not r3, r3
+        ");
+
+        assert_eq!(vm.registers.r[1], !15);
+        assert_eq!(vm.registers.r[2], !6);
+        assert_eq!(vm.registers.r[3], !5300);
+    }
+
 }
