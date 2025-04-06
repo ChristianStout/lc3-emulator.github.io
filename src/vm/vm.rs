@@ -81,7 +81,7 @@ mod tests {
     use super::*;
 
     fn run_vm(file: &str) -> VM {
-        let file = format!(".orig x3000
+        let file = format!(".orig x0000
         
         {file}
     
@@ -157,4 +157,53 @@ start   add r1, r1, #15 ; since every register should be set to 0 by default, th
         assert_eq!(vm.registers.r[3], !5300);
     }
 
+    #[test]
+    fn test_jmp() {
+        let vm = run_vm("
+        lea r0, start
+        jmp r0
+max     .fill xFFFF
+
+end     ld r0, max
+        halt
+
+start   ld r1, max
+        lea r7, end
+        jmp r7
+       ");
+
+        assert_eq!(vm.registers.r[0], u16::MAX);
+        assert_eq!(vm.registers.r[1], u16::MAX);
+       
+    }
+
+    #[test]
+    fn test_lea() {
+        let vm = run_vm(r#"
+        lea r0, start
+        lea r1, max
+        lea r2, string
+        lea r3, end
+        lea r4, num_16
+        halt
+
+max     .fill xFFFF     ; address = 6
+
+end     ld r0, max      ; address = 7
+        halt
+
+string .stringz "len=5" ; address = 9
+
+start   ld r1, max      ; address = 14
+        lea r7, end
+        jmp r7
+num_16  .fill   #16     ; address = 17
+        "#);
+
+        assert_eq!(vm.registers.r[0], 14);
+        assert_eq!(vm.registers.r[1], 6); 
+        assert_eq!(vm.registers.r[2], 9); 
+        assert_eq!(vm.registers.r[3], 7); 
+        assert_eq!(vm.registers.r[4], 17); 
+    }
 }
