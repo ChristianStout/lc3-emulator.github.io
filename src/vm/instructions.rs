@@ -208,9 +208,10 @@ impl Instruction for Ld {
               | op   dr  pcoffset9 |
         */
         let dr = value >> 9;
-        let offset = get_offset(value, 9);
+        let pcoffset9 = get_offset(value, 9);
 
-        let new_value = mem.get(offset);
+        let relative_pc_address = get_pcoffset_location(reg, pcoffset9);
+        let new_value = mem.get(relative_pc_address);
         reg.set(dr as usize, new_value);
     }
 }
@@ -415,6 +416,18 @@ fn set_nzp(reg: &mut Registers, value: u16) {
     if signed > 0 {
         reg.p = true;
     }
+}
+
+fn get_pcoffset_location(reg: &mut Registers, value: u16) -> u16 {
+    if value == 0 || value as i16 > 0 {
+        return reg.pc + value;
+    }
+    // if Rust ignored unused carried "overflow" bits, this wouldn't be necessary.
+    // but it doesn't, so it is.
+    let signed_value = value as i16;
+    let negated_value = !signed_value + 1;
+
+    return reg.pc - negated_value as u16;
 }
 
 #[cfg(test)]
