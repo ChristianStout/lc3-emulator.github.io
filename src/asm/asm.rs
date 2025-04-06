@@ -171,6 +171,9 @@ impl Asm {
             OpcodeIns::Br(n, z, p) => {
                 output = self.handle_br(*n, *z, *p, opcode, tokens);
             },
+            OpcodeIns::Jmp => {
+                output = self.handle_jmp(opcode, tokens);
+            }
             OpcodeIns::Ld | OpcodeIns::Ldi | OpcodeIns::Lea | OpcodeIns::St | OpcodeIns::Sti => {
                 output = self.handle_reg_offset9(opcode, tokens);
             },
@@ -267,6 +270,21 @@ impl Asm {
         } else {
             unreachable!();
         }
+    }
+
+    pub fn handle_jmp(&mut self, opcode: u16, tokens: &Vec<Token>) -> u16 {
+        let mut output = opcode;
+
+        let register = &tokens[self.token_index].inner_token;
+        self.token_index += 1;
+
+        if let TokenType::Register(reg) = register {
+            output = output + (reg << 6);
+        } else {
+            unreachable!();
+        }
+
+        return output;
     }
 
     pub fn handle_reg_offset9(&mut self, opcode: u16, tokens: &Vec<Token>) -> u16 {
