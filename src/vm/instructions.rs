@@ -156,7 +156,7 @@ impl Instruction for JmpRet {
               | ---- --- --- ------ |
               | op       baser      |
               +---------------------+
-        JMP - | 1100 000 111 000000 |
+        RET - | 1100 000 111 000000 |
               | ---- --- --- ------ |
               | op       r7         |
         */
@@ -263,7 +263,7 @@ impl Instruction for Lea {
         let dr = value >> 9;
         let ptr = get_offset(value, 9);
 
-        let address = reg.pc + ptr;
+        let address = get_pcoffset_location(reg, ptr);
         reg.set(dr as usize, address);
     }
 }

@@ -89,6 +89,10 @@ code > span#highlight-instruction {
     color: #EBC054;
 }
 
+code > span#highlight-directive {
+    color: #cf54eb;
+}
+
 code > span#highlight-register {
     color: #50EBB7;
 }
@@ -97,7 +101,7 @@ code > span#highlight-comment {
     color: #909996;
 }
 
-code > span#highlight-comment {
-    color: #909996;
+code > span#highlight-string {
+    color: #c2b07e;
 }
 

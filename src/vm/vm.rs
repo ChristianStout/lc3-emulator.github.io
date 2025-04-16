@@ -174,7 +174,6 @@ start   ld r1, max
 
         assert_eq!(vm.registers.r[0], u16::MAX);
         assert_eq!(vm.registers.r[1], u16::MAX);
-       
     }
 
     #[test]
@@ -205,5 +204,25 @@ num_16  .fill   #16     ; address = 17
         assert_eq!(vm.registers.r[2], 9); 
         assert_eq!(vm.registers.r[3], 7); 
         assert_eq!(vm.registers.r[4], 17); 
+    }
+
+    #[test]
+    fn test_ret() {
+        let vm = run_vm("
+        lea r7, start
+        ret
+max     .fill xFFFF
+
+end     ld r0, max
+        halt
+
+start   ld r1, max
+        lea r7, end
+        ret
+       ");
+
+        assert_eq!(vm.registers.r[0], u16::MAX);
+        assert_eq!(vm.registers.r[1], u16::MAX);
+
     }
 }

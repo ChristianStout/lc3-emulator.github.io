@@ -1,9 +1,10 @@
+        lea r0, start
+        jmp r0
+max     .fill xFFFF
 
-        .orig           x0
-
-        lea             r0, hi
-        puts
+end     ld r0, max
         halt
-hi      .stringz        "Hello, World from the LC-3 Assembler!\n"
 
-        .end
+start   ld r1, max
+        lea r7, end
+        jmp r7
